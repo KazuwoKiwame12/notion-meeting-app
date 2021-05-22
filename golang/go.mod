@@ -3,6 +3,7 @@ module app
 go 1.16
 
 require (
+	github.com/go-co-op/gocron v1.5.0 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/labstack/echo/v4 v4.3.0
 	github.com/stretchr/testify v1.7.0 // indirect
