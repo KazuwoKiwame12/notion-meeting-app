@@ -15,11 +15,15 @@ func (c *CommandUsecase) Start() {
 		jst = time.FixedZone("JST", +9*60*60)
 	}
 	nowJST := time.Now().UTC().In(jst)
+	date := nowJST.Format("2006-01-02")
+
 	s := gocron.NewScheduler(jst)
-	// s.Sunday().At("09:00").Do(scheduler.CreateDailyDiaryTemplates, token, api_url, database_id)
 	templateUC := NewTemplateUsecase()
-	s.Every(1).Minutes().Do(templateUC.CreateForTeamMeeting, nowJST.Format("2006-01-02"))
-	s.Every(1).Minutes().Do(templateUC.CreateForGeneralMeeting, nowJST.Format("2006-01-02"))
+	// s.Every(1).Minutes().Do(templateUC.CreateForTeamMeeting, date)
+	// s.Every(1).Minutes().Do(templateUC.CreateForGeneralMeeting, date)
+	s.Tuesday().At("09:00").Do(templateUC.CreateForTeamMeeting, date)
+	s.Wednesday().At("09:00").Do(templateUC.CreateForGeneralMeeting, date)
+
 	s.StartAsync()
 }
 
