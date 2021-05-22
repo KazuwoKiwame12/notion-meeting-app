@@ -17,15 +17,11 @@ func NewCommandHandler(commandUC *usecase.CommandUsecase) *CommandHandler {
 }
 
 func (ch *CommandHandler) StartScheduler(c echo.Context) error {
-	if err := ch.commandUC.Start(); err != nil {
-		return err
-	}
+	go ch.commandUC.Start()
 	return c.JSON(204, nil)
 }
 
 func (ch *CommandHandler) CancelScheduler(c echo.Context) error {
-	if err := ch.commandUC.Cancel(); err != nil {
-		return err
-	}
+	go ch.commandUC.Cancel()
 	return c.JSON(204, nil)
 }
