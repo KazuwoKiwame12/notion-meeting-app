@@ -25,7 +25,12 @@ func NewTemplateUsecase() *TemplateUsecase {
 
 func (t *TemplateUsecase) CreateForTeamMeeting(date string) error {
 	params := t.createTemplateFormat(date, isTeam)
-	return t.client.CreatePage(*params)
+	err := t.client.CreatePage(*params)
+	if err != nil {
+		// fmt.Printf("error内容: %w", err)
+	}
+
+	return err
 }
 
 func (t *TemplateUsecase) CreateForGeneralMeeting(date string) error {

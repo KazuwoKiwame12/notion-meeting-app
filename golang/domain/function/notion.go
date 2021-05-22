@@ -7,10 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
 
-const baseURL = "https://api.notion.com/v1/"
+const baseURL = "https://api.notion.com/v1"
 const apiVersion = "2021-05-13"
 
 type NotionClient struct {
@@ -61,7 +62,8 @@ func (nc *NotionClient) CreatePage(params model.Template) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("notion: failed to create page: %v", res)
+		result, _ := ioutil.ReadAll(res.Body)
+		return fmt.Errorf("notion: failed to create page: %s", result)
 	}
 
 	return nil

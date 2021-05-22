@@ -14,9 +14,7 @@ func (c *CommandUsecase) Start() {
 	if err != nil {
 		jst = time.FixedZone("JST", +9*60*60)
 	}
-	now := time.Now()
-	nowUTC := now.UTC()
-	nowJST := nowUTC.In(jst)
+	nowJST := time.Now().UTC().In(jst)
 	s := gocron.NewScheduler(jst)
 	// s.Sunday().At("09:00").Do(scheduler.CreateDailyDiaryTemplates, token, api_url, database_id)
 	templateUC := NewTemplateUsecase()
