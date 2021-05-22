@@ -2,8 +2,6 @@ package config
 
 import "os"
 
-const BaseURL = "https://api.notion.com/v1/"
-
 func CORSAllowOrigin() string {
 	return os.Getenv("CORS_ALLOW_ORIGIN")
 }
