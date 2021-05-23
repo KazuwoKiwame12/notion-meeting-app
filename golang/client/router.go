@@ -18,6 +18,6 @@ func NewServer(commandUC *usecase.CommandUsecase) *echo.Echo {
 
 	commandH := handler.NewCommandHandler(commandUC)
 	e.POST("/start", commandH.StartScheduler)
-	e.POST("/cancel", commandH.CancelScheduler)
+	e.POST("/stop", commandH.StopScheduler)
 	return e
 }

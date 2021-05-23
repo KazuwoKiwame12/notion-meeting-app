@@ -20,9 +20,14 @@ func init() {
 }
 
 func main() {
-	commandUC := &usecase.CommandUsecase{}
+	processManager := map[string]context.CancelFunc{}
+	parentCtx, parentCancel := context.WithCancel(context.Background())
+	defer parentCancel()
+	commandUC := &usecase.CommandUsecase{
+		ProcessManager: processManager,
+		ParentContext:  parentCtx,
+	}
 	s := client.NewServer(commandUC)
-
 	go func() {
 		if err := s.Start(":" + config.Port()); err != nil {
 			s.Logger.Fatalf("shutting down the server with error: %v", err)
