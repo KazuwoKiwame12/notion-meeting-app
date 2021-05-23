@@ -21,10 +21,10 @@ func (c *CommandUsecase) Start() {
 	templateUC := NewTemplateUsecase()
 	// s.Every(1).Minutes().Do(templateUC.CreateForTeamMeeting, date)
 	// s.Every(1).Minutes().Do(templateUC.CreateForGeneralMeeting, date)
-	s.Tuesday().At("09:00").Do(templateUC.CreateForTeamMeeting, date)
-	s.Wednesday().At("09:00").Do(templateUC.CreateForGeneralMeeting, date)
-
+	s.Every(1).Week().Tuesday().At("09:00").Tag("default").Do(templateUC.CreateForTeamMeeting, date)
+	s.Every(1).Week().Wednesday().At("09:00").Tag("default").Do(templateUC.CreateForGeneralMeeting, date)
 	s.StartAsync()
+	s.RunByTag("default")
 }
 
 func (c *CommandUsecase) Cancel() {
