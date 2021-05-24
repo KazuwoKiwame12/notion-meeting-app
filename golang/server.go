@@ -20,12 +20,9 @@ func init() {
 }
 
 func main() {
-	processManager := map[string]context.CancelFunc{}
-	parentCtx, parentCancel := context.WithCancel(context.Background())
-	defer parentCancel()
+	processManager := make(map[string]chan<- struct{})
 	commandUC := &usecase.CommandUsecase{
 		ProcessManager: processManager,
-		ParentContext:  parentCtx,
 	}
 	s := client.NewServer(commandUC)
 	go func() {
