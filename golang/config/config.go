@@ -3,21 +3,25 @@ package config
 import "os"
 
 func CORSAllowOrigin() string {
-	return os.Getenv("CORS_ALLOW_ORIGIN")
+	return getterEnvInfo("CORS_ALLOW_ORIGIN")
 }
 
 func DatabaseID() string {
-	return os.Getenv("DATABASE_ID")
+	return getterEnvInfo("DATABASE_ID")
 }
 
 func NotionToken() string {
-	return os.Getenv("NOTION_TOKEN")
+	return getterEnvInfo("NOTION_TOKEN")
 }
 
 func Port() string {
-	return os.Getenv("PORT")
+	return getterEnvInfo("PORT")
 }
 
 func DSN() string {
-	return os.Getenv("DSN")
+	return getterEnvInfo("DSN")
+}
+
+func getterEnvInfo(key string) string {
+	return os.Getenv(key)
 }
