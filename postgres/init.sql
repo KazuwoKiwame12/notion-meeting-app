@@ -6,15 +6,17 @@ DROP FUNCTION IF EXISTS trigger_set_timestamp();
 DROP TABLE IF EXISTS t_workspace, t_user, t_user_process;
 
 CREATE TABLE t_workspace (
-    id serial PRIMARY KEY,
+    id varchar(255) PRIMARY KEY,
     name varchar(255) NOT NULL,
     created_at timestamptz NOT NULL DEFAULT current_timestamp,
     updated_at timestamptz NOT NULL DEFAULT current_timestamp
 );
 
 CREATE TABLE t_user (
-    id varchar(255) PRIMARY KEY,
-    t_workspace_id int,
+    id serial PRIMARY KEY,
+    slack_user_id varchar(255) NOT NULL,
+    t_workspace_id varchar(255),
+    is_administrator boolean NOT NULL UNIQUE,
     name varchar(255) NOT NULL,
     created_at timestamptz NOT NULL DEFAULT current_timestamp,
     updated_at timestamptz NOT NULL DEFAULT current_timestamp,

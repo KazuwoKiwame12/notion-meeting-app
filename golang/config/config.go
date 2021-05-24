@@ -17,3 +17,7 @@ func NotionToken() string {
 func Port() string {
 	return os.Getenv("PORT")
 }
+
+func DSN() string {
+	return os.Getenv("DSN")
+}
