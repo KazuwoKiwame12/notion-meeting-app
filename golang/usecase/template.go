@@ -19,7 +19,7 @@ type TemplateUsecase struct {
 
 func NewTemplateUsecase() *TemplateUsecase {
 	return &TemplateUsecase{
-		client: function.NewNotionClient(),
+		client: function.NewNotionClient(), // TDODO 構成を考え直す＝アーキテクチャ考える...usecaseでuseidに紐着くtokenやpage content取得してインスタンス作るのあり
 	}
 }
 

@@ -1,7 +1,6 @@
 package function
 
 import (
-	"app/config"
 	"app/domain/model"
 	"bytes"
 	"encoding/json"
@@ -19,9 +18,9 @@ type NotionClient struct {
 	httpClient *http.Client
 }
 
-func NewNotionClient() *NotionClient {
+func NewNotionClient(apiKey string) *NotionClient {
 	nc := &NotionClient{
-		apiKey:     config.NotionToken(),
+		apiKey:     apiKey,
 		httpClient: http.DefaultClient,
 	}
 	return nc

@@ -6,20 +6,20 @@ func CORSAllowOrigin() string {
 	return getterEnvInfo("CORS_ALLOW_ORIGIN")
 }
 
-func DatabaseID() string {
-	return getterEnvInfo("DATABASE_ID")
-}
-
-func NotionToken() string {
-	return getterEnvInfo("NOTION_TOKEN")
-}
-
 func Port() string {
 	return getterEnvInfo("PORT")
 }
 
 func DSN() string {
 	return getterEnvInfo("DSN")
+}
+
+func SALCK_TOKEN() string {
+	return getterEnvInfo("SALCK_TOKEN")
+}
+
+func WEBHOOK_URL() string {
+	return getterEnvInfo("WEBHOOK_URL")
 }
 
 func getterEnvInfo(key string) string {

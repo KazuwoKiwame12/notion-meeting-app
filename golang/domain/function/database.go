@@ -11,7 +11,7 @@ type DatabaseOperater struct {
 	SqlHandler adapter.SqlHandlerAdapter
 }
 
-func (do *DatabaseOperater) RegisterWorkspace(workspace model.Workspace) error {
+func (do *DatabaseOperater) RegisterWorkspace(workspace *model.Workspace) error {
 	query := fmt.Sprintf("INSERT INTO t_workspace(id, name) values %s", do.makePlaceHolders(1, 2))
 	if _, err := do.SqlHandler.Execute(query, workspace.ID, workspace.Name); err != nil {
 		return err
@@ -71,8 +71,8 @@ func (do *DatabaseOperater) GetUser(workspaceID, slackUserID string) (*model.Use
 	return user, nil
 }
 
-func (do *DatabaseOperater) GetAdministrator(workspaceID string) (*model.User, error) {
-	row := do.SqlHandler.QueryRow("SELECT * FROM t_user WHERE t_workspace_id = ? AND is_administrator = ?", workspaceID, true)
+func (do *DatabaseOperater) GetAdministrator() (*model.User, error) {
+	row := do.SqlHandler.QueryRow("SELECT * FROM t_user WHERE is_administrator = ?", true)
 
 	user := &model.User{}
 	if err := row.Scan(
@@ -87,4 +87,47 @@ func (do *DatabaseOperater) GetAdministrator(workspaceID string) (*model.User, e
 		return nil, err
 	}
 	return user, nil
+}
+
+func (do *DatabaseOperater) RegisterNotionInfo(n *model.Notion) error {
+	query := fmt.Sprintf("INSERT INTO t_notion(t_user_id, date, notion_token, notion_database_id, notion_page_content) values %s", do.makePlaceHolders(1, 5))
+	if _, err := do.SqlHandler.Execute(query, n.UserID, n.Date, n.NotionToken, n.NotionDatabaseID, n.NotionPageContent); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (do *DatabaseOperater) UpdateNotionToken(token string) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = ?", token); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (do *DatabaseOperater) UpdateNotionDatabaseID(databaseID string) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_database_id = ?", databaseID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (do *DatabaseOperater) UpdateNotionPageContent(pageContent string) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_page_content = ?", pageContent); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (do *DatabaseOperater) UpdateDateToCreate(date string) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET date = ?", date); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (do *DatabaseOperater) RemoveaNotionToken() error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = ?", ""); err != nil {
+		return err
+	}
+	return nil
 }
