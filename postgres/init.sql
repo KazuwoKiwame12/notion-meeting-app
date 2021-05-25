@@ -18,7 +18,7 @@ CREATE TABLE t_user (
     id serial PRIMARY KEY,
     slack_user_id varchar(255) NOT NULL,
     t_workspace_id varchar(255),
-    is_administrator boolean NOT NULL UNIQUE,
+    is_administrator boolean NOT NULL,
     name varchar(255) NOT NULL,
     created_at timestamptz NOT NULL DEFAULT current_timestamp,
     updated_at timestamptz NOT NULL DEFAULT current_timestamp,

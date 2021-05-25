@@ -33,24 +33,14 @@ func (do *DatabaseOperater) RegisterUsers(users []model.User) error {
 		return bind
 	}
 
+	fmt.Printf("exec param len: %d, contents: %+v\n", len(convertDataForExec(users, 4)), convertDataForExec(users, 4))
+	fmt.Printf("placeholder len: %d, contents: %+v\n", len(do.makePlaceHolders(len(users), 4)), do.makePlaceHolders(len(users), 4))
+
 	query := fmt.Sprintf("INSERT INTO t_user(slack_user_id, t_workspace_id, is_administrator, name) values %s", do.makePlaceHolders(len(users), 4))
 	if _, err := do.SqlHandler.Execute(query, convertDataForExec(users, 4)...); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (do *DatabaseOperater) makePlaceHolders(numOfInsertValues, numOfColumns int) string {
-	placeholdersList := make([]string, numOfInsertValues)
-	for i := 0; i < numOfInsertValues; i++ {
-		placeholders := make([]string, numOfColumns)
-		for j := 0; j < numOfColumns; j++ {
-			placeholders[j] = "?"
-		}
-		joined := strings.Join(placeholders, ",")
-		placeholdersList[i] = "(" + joined + ")"
-	}
-	return strings.Join(placeholdersList, ",")
 }
 
 func (do *DatabaseOperater) GetUser(workspaceID, slackUserID string) (*model.User, error) {
@@ -97,6 +87,23 @@ func (do *DatabaseOperater) RegisterNotionInfo(n *model.Notion) error {
 	return nil
 }
 
+func (do *DatabaseOperater) GetNotionInfo(userID string) (*model.Notion, error) {
+	row := do.SqlHandler.QueryRow("SELECT * FROM t_notion WHERE t_user_id = ?", userID)
+
+	notion := &model.Notion{}
+	if err := row.Scan(
+		&notion.ID,
+		&notion.UserID,
+		&notion.Date,
+		&notion.NotionToken,
+		&notion.NotionDatabaseID,
+		&notion.NotionPageContent,
+	); err != nil {
+		return nil, err
+	}
+	return notion, nil
+}
+
 func (do *DatabaseOperater) UpdateNotionToken(token string) error {
 	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = ?", token); err != nil {
 		return err
@@ -130,4 +137,19 @@ func (do *DatabaseOperater) RemoveaNotionToken() error {
 		return err
 	}
 	return nil
+}
+
+func (do *DatabaseOperater) makePlaceHolders(numOfInsertValues, numOfColumns int) string {
+	placeholdersList := make([]string, numOfInsertValues)
+	var count int = 1
+	for i := 0; i < numOfInsertValues; i++ {
+		placeholders := make([]string, numOfColumns)
+		for j := 0; j < numOfColumns; j++ {
+			placeholders[j] = fmt.Sprintf("$%d", count)
+			count += 1
+		}
+		joined := strings.Join(placeholders, ",")
+		placeholdersList[i] = "(" + joined + ")"
+	}
+	return strings.Join(placeholdersList, ",")
 }

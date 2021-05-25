@@ -12,7 +12,7 @@ type User struct {
 	ID              int
 	SlackUserID     string
 	WorkspaceID     string
-	IsAdministrator string
+	IsAdministrator bool
 	Name            string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
@@ -20,7 +20,7 @@ type User struct {
 
 type Notion struct {
 	ID                int
-	UserID            string
+	UserID            int
 	Date              int
 	NotionToken       string
 	NotionDatabaseID  string
