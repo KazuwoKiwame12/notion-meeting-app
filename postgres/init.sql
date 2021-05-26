@@ -16,7 +16,7 @@ CREATE TABLE t_workspace (
 -- administoratorはこのアプリの中で一人のみ
 CREATE TABLE t_user (
     id serial PRIMARY KEY,
-    slack_user_id varchar(255) NOT NULL,
+    slack_user_id varchar(255) NOT NULL UNIQUE,
     t_workspace_id varchar(255),
     is_administrator boolean NOT NULL,
     name varchar(255) NOT NULL,

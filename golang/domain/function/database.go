@@ -12,7 +12,7 @@ type DatabaseOperater struct {
 }
 
 func (do *DatabaseOperater) RegisterWorkspace(workspace *model.Workspace) error {
-	query := fmt.Sprintf("INSERT INTO t_workspace(id, name) values %s", do.makePlaceHolders(1, 2))
+	query := "INSERT INTO t_workspace(id, name) values ($1, $2) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name"
 	if _, err := do.SqlHandler.Execute(query, workspace.ID, workspace.Name); err != nil {
 		return err
 	}
@@ -33,10 +33,8 @@ func (do *DatabaseOperater) RegisterUsers(users []model.User) error {
 		return bind
 	}
 
-	fmt.Printf("exec param len: %d, contents: %+v\n", len(convertDataForExec(users, 4)), convertDataForExec(users, 4))
-	fmt.Printf("placeholder len: %d, contents: %+v\n", len(do.makePlaceHolders(len(users), 4)), do.makePlaceHolders(len(users), 4))
-
-	query := fmt.Sprintf("INSERT INTO t_user(slack_user_id, t_workspace_id, is_administrator, name) values %s", do.makePlaceHolders(len(users), 4))
+	queryForUpdatePart := "UPDATE SET is_administrator = EXCLUDED.is_administrator, name = EXCLUDED.name"
+	query := fmt.Sprintf("INSERT INTO t_user(slack_user_id, t_workspace_id, is_administrator, name) values %s ON CONFLICT(slack_user_id) DO %s", do.makePlaceHolders(len(users), 4), queryForUpdatePart)
 	if _, err := do.SqlHandler.Execute(query, convertDataForExec(users, 4)...); err != nil {
 		return err
 	}
@@ -44,7 +42,7 @@ func (do *DatabaseOperater) RegisterUsers(users []model.User) error {
 }
 
 func (do *DatabaseOperater) GetUser(workspaceID, slackUserID string) (*model.User, error) {
-	row := do.SqlHandler.QueryRow("SELECT * FROM t_user WHERE t_workspace_id = ? AND slack_user_id = ?", workspaceID, slackUserID)
+	row := do.SqlHandler.QueryRow("SELECT * FROM t_user WHERE t_workspace_id = $1 AND slack_user_id = $2", workspaceID, slackUserID)
 
 	user := &model.User{}
 	if err := row.Scan(
@@ -62,7 +60,7 @@ func (do *DatabaseOperater) GetUser(workspaceID, slackUserID string) (*model.Use
 }
 
 func (do *DatabaseOperater) GetAdministrator() (*model.User, error) {
-	row := do.SqlHandler.QueryRow("SELECT * FROM t_user WHERE is_administrator = ?", true)
+	row := do.SqlHandler.QueryRow("SELECT * FROM t_user WHERE is_administrator = $1", true)
 
 	user := &model.User{}
 	if err := row.Scan(
@@ -87,8 +85,8 @@ func (do *DatabaseOperater) RegisterNotionInfo(n *model.Notion) error {
 	return nil
 }
 
-func (do *DatabaseOperater) GetNotionInfo(userID string) (*model.Notion, error) {
-	row := do.SqlHandler.QueryRow("SELECT * FROM t_notion WHERE t_user_id = ?", userID)
+func (do *DatabaseOperater) GetNotionInfo(userID int) (*model.Notion, error) {
+	row := do.SqlHandler.QueryRow("SELECT * FROM t_notion WHERE t_user_id = $1", userID)
 
 	notion := &model.Notion{}
 	if err := row.Scan(
@@ -104,36 +102,36 @@ func (do *DatabaseOperater) GetNotionInfo(userID string) (*model.Notion, error) 
 	return notion, nil
 }
 
-func (do *DatabaseOperater) UpdateNotionToken(token string) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = ?", token); err != nil {
+func (do *DatabaseOperater) UpdateNotionToken(token string, userID int) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = $1 WHERE t_user_id = $2", token, userID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (do *DatabaseOperater) UpdateNotionDatabaseID(databaseID string) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_database_id = ?", databaseID); err != nil {
+func (do *DatabaseOperater) UpdateNotionDatabaseID(databaseID string, userID int) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_database_id = $1 WHERE t_user_id = $2", databaseID, userID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (do *DatabaseOperater) UpdateNotionPageContent(pageContent string) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_page_content = ?", pageContent); err != nil {
+func (do *DatabaseOperater) UpdateNotionPageContent(pageContent string, userID int) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_page_content = $1 WHERE t_user_id = $2", pageContent, userID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (do *DatabaseOperater) UpdateDateToCreate(date string) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET date = ?", date); err != nil {
+func (do *DatabaseOperater) UpdateDateToCreate(date int, userID int) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET date = $1 WHERE t_user_id = $2", date, userID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (do *DatabaseOperater) RemoveaNotionToken() error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = ?", ""); err != nil {
+func (do *DatabaseOperater) RemoveaNotionToken(userID int) error {
+	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = $1 WHERE t_user_id = $2", "", userID); err != nil {
 		return err
 	}
 	return nil
