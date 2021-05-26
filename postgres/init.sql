@@ -17,7 +17,7 @@ CREATE TABLE t_workspace (
 CREATE TABLE t_user (
     id serial PRIMARY KEY,
     slack_user_id varchar(255) NOT NULL UNIQUE,
-    t_workspace_id varchar(255),
+    t_workspace_id varchar(255) NOT NULL,
     is_administrator boolean NOT NULL,
     name varchar(255) NOT NULL,
     created_at timestamptz NOT NULL DEFAULT current_timestamp,
@@ -29,7 +29,7 @@ CREATE TABLE t_user (
 
 CREATE TABLE t_notion (
     id serial PRIMARY KEY,
-    t_user_id integer,
+    t_user_id integer NOT NULL UNIQUE,
     date smallint NOT NULL,
     notion_token varchar(255) NOT NULL,
     notion_database_id varchar(255) NOT NULL,

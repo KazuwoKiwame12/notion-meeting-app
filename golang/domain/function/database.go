@@ -78,7 +78,8 @@ func (do *DatabaseOperater) GetAdministrator() (*model.User, error) {
 }
 
 func (do *DatabaseOperater) RegisterNotionInfo(n *model.Notion) error {
-	query := fmt.Sprintf("INSERT INTO t_notion(t_user_id, date, notion_token, notion_database_id, notion_page_content) values %s", do.makePlaceHolders(1, 5))
+	queryForUpdatePart := "UPDATE SET date = EXCLUDED.date, notion_token = EXCLUDED.notion_token, notion_database_id=EXCLUDED.notion_database_id, notion_page_content=EXCLUDED.notion_page_content"
+	query := fmt.Sprintf("INSERT INTO t_notion(t_user_id, date, notion_token, notion_database_id, notion_page_content) values %s ON CONFLICT(t_user_id) DO %s", do.makePlaceHolders(1, 5), queryForUpdatePart)
 	if _, err := do.SqlHandler.Execute(query, n.UserID, n.Date, n.NotionToken, n.NotionDatabaseID, n.NotionPageContent); err != nil {
 		return err
 	}
