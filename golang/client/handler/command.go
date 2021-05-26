@@ -39,3 +39,28 @@ func (ch *CommandHandler) StopScheduler(c echo.Context) error {
 	go ch.commandUC.Stop(userProcessID)
 	return c.JSON(http.StatusOK, responseJson{StatusCode: http.StatusOK, Message: "your request successed!! scheduler is canceled"})
 }
+
+// TODO implementation
+func (ch *CommandHandler) RegisterNotionInfo(c echo.Context) error {
+	return nil
+}
+
+func (ch *CommandHandler) UpdateNotionToken(c echo.Context) error {
+	return nil
+}
+
+func (ch *CommandHandler) UpdateNotionDatabaseID(c echo.Context) error {
+	return nil
+}
+
+func (ch *CommandHandler) UpdateNotionPageContent(c echo.Context) error {
+	return nil
+}
+
+func (ch *CommandHandler) UpdateSchedulerDate(c echo.Context) error {
+	return nil
+}
+
+func (ch *CommandHandler) ExplainHowToUse(c echo.Context) error {
+	return nil
+}

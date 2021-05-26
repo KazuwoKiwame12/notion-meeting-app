@@ -22,6 +22,14 @@ func WEBHOOK_URL() string {
 	return getterEnvInfo("WEBHOOK_URL")
 }
 
+func NOTION_API_VERSION() string {
+	return getterEnvInfo("NOTION_API_VERSION")
+}
+
+func NOTION_API_URL() string {
+	return getterEnvInfo("NOTION_API_URL")
+}
+
 func getterEnvInfo(key string) string {
 	return os.Getenv(key)
 }

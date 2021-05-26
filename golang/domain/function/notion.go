@@ -2,6 +2,7 @@ package function
 
 import (
 	"app/domain/model"
+	"app/config"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -9,9 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 )
-
-const baseURL = "https://api.notion.com/v1"
-const apiVersion = "2021-05-13"
 
 type NotionClient struct {
 	apiKey     string
@@ -27,12 +25,12 @@ func NewNotionClient(apiKey string) *NotionClient {
 }
 
 func (nc *NotionClient) newRequest(method, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, baseURL+url, body)
+	req, err := http.NewRequest(method, config.NOTION_API_URL()+url, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", nc.apiKey))
-	req.Header.Set("Notion-Version", apiVersion)
+	req.Header.Set("Notion-Version", config.NOTION_API_VERSION())
 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
