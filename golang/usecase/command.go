@@ -9,6 +9,7 @@ import (
 
 type CommandUsecase struct {
 	ProcessManager map[string]chan<- struct{}
+	DBOperator     *function.DBOperator
 }
 
 func (c *CommandUsecase) Start(userProcessID string) {
@@ -20,7 +21,7 @@ func (c *CommandUsecase) Start(userProcessID string) {
 	// date := nowJST.Format("2006-01-02")
 
 	s := gocron.NewScheduler(jst)
-	templateUC := NewTemplateUsecase()
+	templateUC := NewTemplateUsecase(c.dbOperator)
 	s.Every(30).Seconds().Do(templateUC.CreateForTeamMeeting, userProcessID)
 	s.Every(30).Seconds().Do(templateUC.CreateForGeneralMeeting, userProcessID)
 	// s.Every(1).Week().Tuesday().At("09:00").Tag("default").Do(templateUC.CreateForTeamMeeting, date)

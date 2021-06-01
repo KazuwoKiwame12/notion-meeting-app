@@ -16,15 +16,14 @@ type NotionClient struct {
 	httpClient *http.Client
 }
 
-func NewNotionClient(apiKey string) *NotionClient {
+func NewNotionClient() *NotionClient {
 	nc := &NotionClient{
-		apiKey:     apiKey,
 		httpClient: http.DefaultClient,
 	}
 	return nc
 }
 
-func (nc *NotionClient) newRequest(method, url string, body io.Reader) (*http.Request, error) {
+func (nc *NotionClient) newRequest(apiKey, method, url string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, config.NOTION_API_URL()+url, body)
 	if err != nil {
 		return nil, err
@@ -39,7 +38,7 @@ func (nc *NotionClient) newRequest(method, url string, body io.Reader) (*http.Re
 	return req, nil
 }
 
-func (nc *NotionClient) CreatePage(params model.Template) error {
+func (nc *NotionClient) CreatePage(apiKey string, params model.Template) error {
 	body := &bytes.Buffer{}
 
 	err := json.NewEncoder(body).Encode(params)
@@ -47,7 +46,7 @@ func (nc *NotionClient) CreatePage(params model.Template) error {
 		return fmt.Errorf("notion: failed to encode body params to JSON: %w", err)
 	}
 
-	req, err := nc.newRequest(http.MethodPost, "/pages", body)
+	req, err := nc.newRequest(apiKey, http.MethodPost, "/pages", body)
 	if err != nil {
 		return fmt.Errorf("notion: invalid request: %w", err)
 	}

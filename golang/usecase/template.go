@@ -14,12 +14,15 @@ const (
 )
 
 type TemplateUsecase struct {
-	client *function.NotionClient
+	client     *function.NotionClient
+	dbOperator *function.DBOperator
 }
 
-func NewTemplateUsecase() *TemplateUsecase {
+func NewTemplateUsecase(dbOperator *function.DBOperator) *TemplateUsecase {
+	 // TDODO 構成を考え直す＝アーキテクチャ考える...usecaseでuseidに紐着くtokenやpage content取得してインスタンス作るのあり
 	return &TemplateUsecase{
-		client: function.NewNotionClient(), // TDODO 構成を考え直す＝アーキテクチャ考える...usecaseでuseidに紐着くtokenやpage content取得してインスタンス作るのあり
+		client:     function.NewNotionClient(),
+		dbOperator: dbOperator,
 	}
 }
 
