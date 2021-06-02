@@ -14,8 +14,8 @@ func DSN() string {
 	return getterEnvInfo("DSN")
 }
 
-func SALCK_TOKEN() string {
-	return getterEnvInfo("SALCK_TOKEN")
+func SLACK_TOKEN() string {
+	return getterEnvInfo("SLACK_TOKEN")
 }
 
 func WEBHOOK_URL() string {

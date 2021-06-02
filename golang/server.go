@@ -5,6 +5,7 @@ import (
 	"app/config"
 	"app/domain/function"
 	"app/infrastructure"
+	"app/observation"
 	"app/usecase"
 	"context"
 	"fmt"
@@ -56,7 +57,6 @@ func main() {
 	slackUC := &usecase.SlackUsecase{
 		DBOperator: dbOp,
 	}
-	// TODO slackの状態を維持するschedulerの起動処理
 
 	// client初期化
 	s := client.NewServer(commandUC, authorizationUC, slackUC)
@@ -66,6 +66,12 @@ func main() {
 			s.Logger.Fatalf("shutting down the server with error: %v", err)
 		}
 	}()
+
+	// slackの最新情報を維持し続ける
+	o := &observation.SlackObserver{
+		DBOperator: dbOp,
+	}
+	go o.KeepSatate()
 
 	// 終了処理
 	quit := make(chan os.Signal, 1)
