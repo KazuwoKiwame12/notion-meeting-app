@@ -17,14 +17,15 @@ func NewServer(commandUC *usecase.CommandUsecase, authorizationUC *usecase.Autho
 	}))
 
 	commandH := handler.NewCommandHandler(commandUC)
+	modalH := handler.NewModalHandler(slackUC)
+
 	e.POST("/start", commandH.StartScheduler)
 	e.POST("/stop", commandH.StopScheduler)
-	e.POST("/register/notionInfo", commandH.RegisterNotionInfo)
+	e.POST("/modal/operation", modalH.CallModalOperation)
+	e.POST("/explain", commandH.ExplainHowToUse)
 	// e.POST("/update/notion/token", commandH.UpdateNotionToken)
 	// e.POST("/update/notion/databaseID", commandH.UpdateNotionDatabaseID)
 	// e.POST("/update/notion/pageContent", commandH.UpdateNotionPageContent)
 	// e.POST("/update/scheduler/date", commandH.UpdateSchedulerDate)
-	e.POST("/explain", commandH.ExplainHowToUse)
-	// e.Post("/get/format/register", )
 	return e
 }
