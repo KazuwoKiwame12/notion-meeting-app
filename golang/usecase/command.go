@@ -1,18 +1,25 @@
 package usecase
 
 import (
+	"app/domain/function"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-co-op/gocron"
 )
 
 type CommandUsecase struct {
-	ProcessManager map[string]chan<- struct{}
-	DBOperator     *function.DBOperator
+	ProcessManager map[int]chan<- struct{}
+	DBOperator     *function.DatabaseOperater
 }
 
-func (c *CommandUsecase) Start(userProcessID string) {
+func (cu *CommandUsecase) Start(userID int) {
+	notion, err := cu.DBOperator.GetNotionInfo(userID)
+	if err != nil {
+		log.Printf("database notion get error: %+v", err)
+	}
+
 	jst, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		jst = time.FixedZone("JST", +9*60*60)
@@ -21,9 +28,9 @@ func (c *CommandUsecase) Start(userProcessID string) {
 	// date := nowJST.Format("2006-01-02")
 
 	s := gocron.NewScheduler(jst)
-	templateUC := NewTemplateUsecase(c.dbOperator)
-	s.Every(30).Seconds().Do(templateUC.CreateForTeamMeeting, userProcessID)
-	s.Every(30).Seconds().Do(templateUC.CreateForGeneralMeeting, userProcessID)
+	templateUC := NewTemplateUsecase(cu.DBOperator)
+	s.Every(30).Seconds().Do(templateUC.CreateForTeamMeeting, notion.NotionDatabaseID, notion.NotionToken, userID) // TODO tokenの暗号化を複合する処理を記述する
+	s.Every(30).Seconds().Do(templateUC.CreateForGeneralMeeting, notion.NotionDatabaseID, notion.NotionToken, userID)
 	// s.Every(1).Week().Tuesday().At("09:00").Tag("default").Do(templateUC.CreateForTeamMeeting, date)
 	// s.Every(1).Week().Wednesday().At("09:00").Tag("default").Do(templateUC.CreateForGeneralMeeting, date)
 	s.StartAsync()
@@ -31,7 +38,7 @@ func (c *CommandUsecase) Start(userProcessID string) {
 
 	// cancel commandでスケジューラを停止させる
 	cancelCh := make(chan struct{})
-	c.ProcessManager[userProcessID] = cancelCh
+	cu.ProcessManager[userID] = cancelCh
 	select {
 	case <-cancelCh:
 		fmt.Println("----done-----")
@@ -40,8 +47,8 @@ func (c *CommandUsecase) Start(userProcessID string) {
 	}
 }
 
-func (c *CommandUsecase) Stop(userProcessID string) {
-	cancelCh := c.ProcessManager[userProcessID]
+func (cu *CommandUsecase) Stop(userID int) {
+	cancelCh := cu.ProcessManager[userID]
 	close(cancelCh)
-	delete(c.ProcessManager, userProcessID)
+	delete(cu.ProcessManager, userID)
 }

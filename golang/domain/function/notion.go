@@ -1,8 +1,8 @@
 package function
 
 import (
-	"app/domain/model"
 	"app/config"
+	"app/domain/model"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -12,7 +12,6 @@ import (
 )
 
 type NotionClient struct {
-	apiKey     string
 	httpClient *http.Client
 }
 
@@ -23,12 +22,12 @@ func NewNotionClient() *NotionClient {
 	return nc
 }
 
-func (nc *NotionClient) newRequest(apiKey, method, url string, body io.Reader) (*http.Request, error) {
+func (nc *NotionClient) newRequest(token, method, url string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, config.NOTION_API_URL()+url, body)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", nc.apiKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
 	req.Header.Set("Notion-Version", config.NOTION_API_VERSION())
 
 	if body != nil {
@@ -38,7 +37,7 @@ func (nc *NotionClient) newRequest(apiKey, method, url string, body io.Reader) (
 	return req, nil
 }
 
-func (nc *NotionClient) CreatePage(apiKey string, params model.Template) error {
+func (nc *NotionClient) CreatePage(token string, params model.Template) error {
 	body := &bytes.Buffer{}
 
 	err := json.NewEncoder(body).Encode(params)
@@ -46,7 +45,7 @@ func (nc *NotionClient) CreatePage(apiKey string, params model.Template) error {
 		return fmt.Errorf("notion: failed to encode body params to JSON: %w", err)
 	}
 
-	req, err := nc.newRequest(apiKey, http.MethodPost, "/pages", body)
+	req, err := nc.newRequest(token, http.MethodPost, "/pages", body)
 	if err != nil {
 		return fmt.Errorf("notion: invalid request: %w", err)
 	}

@@ -1,9 +1,9 @@
 package usecase
 
 import (
-	"app/config"
 	"app/domain/function"
 	"app/domain/model"
+	"log"
 )
 
 type category int
@@ -15,36 +15,36 @@ const (
 
 type TemplateUsecase struct {
 	client     *function.NotionClient
-	dbOperator *function.DBOperator
+	dbOperator *function.DatabaseOperater
 }
 
-func NewTemplateUsecase(dbOperator *function.DBOperator) *TemplateUsecase {
-	 // TDODO 構成を考え直す＝アーキテクチャ考える...usecaseでuseidに紐着くtokenやpage content取得してインスタンス作るのあり
+func NewTemplateUsecase(dbOperator *function.DatabaseOperater) *TemplateUsecase {
+	// TDODO 構成を考え直す＝アーキテクチャ考える...usecaseでuseidに紐着くtokenやpage content取得してインスタンス作るのあり
 	return &TemplateUsecase{
 		client:     function.NewNotionClient(),
 		dbOperator: dbOperator,
 	}
 }
 
-func (t *TemplateUsecase) CreateForTeamMeeting(date string) error {
-	params := t.createTemplateFormat(date, isTeam)
-	err := t.client.CreatePage(*params)
+func (t *TemplateUsecase) CreateForTeamMeeting(databaseID, token, date string) error {
+	params := t.createTemplateFormat(databaseID, date, isTeam)
+	err := t.client.CreatePage(token, *params)
 	if err != nil {
-		// fmt.Printf("error内容: %w", err)
+		log.Printf("notion create page error: %+v", err)
 	}
 
 	return err
 }
 
-func (t *TemplateUsecase) CreateForGeneralMeeting(date string) error {
-	params := t.createTemplateFormat(date, isGeneral)
-	return t.client.CreatePage(*params)
+func (t *TemplateUsecase) CreateForGeneralMeeting(databaseID, token, date string) error {
+	params := t.createTemplateFormat(databaseID, date, isGeneral)
+	return t.client.CreatePage(token, *params)
 }
 
-func (t *TemplateUsecase) createTemplateFormat(date string, categ category) *model.Template {
+func (t *TemplateUsecase) createTemplateFormat(databaseID, date string, categ category) *model.Template {
 	params := &model.Template{}
 	// database idの指定
-	params.Parent.DatabaseID = config.DatabaseID()
+	params.Parent.DatabaseID = databaseID
 
 	// タイトルの作成
 	var title string

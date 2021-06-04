@@ -41,15 +41,15 @@ func main() {
 	}
 
 	// usecase初期化
-	processManager := make(map[string]chan<- struct{})
+	processManager := make(map[int]chan<- struct{})
 	defer func() {
-		for _, process := raneg processManager {
+		for _, process := range processManager {
 			close(process)
 		}
 	}()
 	commandUC := &usecase.CommandUsecase{
 		ProcessManager: processManager,
-		DBOperator: dbOp,
+		DBOperator:     dbOp,
 	}
 	authorizationUC := &usecase.AuthorizationUsecase{
 		DBOperator: dbOp,
