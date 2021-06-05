@@ -70,7 +70,8 @@ func hasSameRecordOfNotion(result *model.Notion, want *model.Notion) bool {
 
 func TestMain(m *testing.M) {
 	fmt.Println("before all...")
-	if err := godotenv.Load(); err != nil {
+	envfilePath := fmt.Sprintf("%s/src/app/.env", os.Getenv("GOPATH"))
+	if err := godotenv.Load(envfilePath); err != nil {
 		fmt.Printf("%v\n", err)
 	}
 	sh, err := infrastructure.NewSqlHandler()
