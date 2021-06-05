@@ -6,6 +6,7 @@ import (
 	"app/infrastructure"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/joho/godotenv"
@@ -13,7 +14,7 @@ import (
 
 var w *model.Workspace = &model.Workspace{ID: "W100", Name: "test1"}
 var u *model.User = &model.User{SlackUserID: "U100", WorkspaceID: w.ID, IsAdministrator: true, Name: "sample100"}
-var n *model.Notion = &model.Notion{UserID: u.ID, Date: 2, NotionToken: "tokenNo1", NotionDatabaseID: "DatabaseIDNo1", NotionPageContent: "sample"}
+var n *model.Notion = &model.Notion{UserID: u.ID, Date: 2, NotionToken: []byte("tokenNo1"), NotionDatabaseID: []byte("DatabaseIDNo1"), NotionPageContent: "sample"}
 
 // TODO テストコードの記入
 func CreateData(sh *infrastructure.SqlHandler) {
@@ -62,8 +63,8 @@ func getDbOperatorInstance() *function.DatabaseOperater {
 func hasSameRecordOfNotion(result *model.Notion, want *model.Notion) bool {
 	isSameUser := result.UserID == want.UserID
 	isSameDate := result.Date == want.Date
-	isSameToken := result.NotionToken == want.NotionToken
-	isSameDatabaseID := result.NotionDatabaseID == want.NotionDatabaseID
+	isSameToken := reflect.DeepEqual(result.NotionToken, want.NotionToken)
+	isSameDatabaseID := reflect.DeepEqual(result.NotionDatabaseID, want.NotionDatabaseID)
 	isSameContent := result.NotionPageContent == want.NotionPageContent
 	return isSameUser && isSameDate && isSameToken && isSameDatabaseID && isSameContent
 }
@@ -238,7 +239,7 @@ func TestRegisterNotion(t *testing.T) {
 	}{
 		{
 			name:       "notion tableにデータを登録する",
-			insertData: &model.Notion{UserID: u.ID, Date: 3, NotionToken: "tokenNo2", NotionDatabaseID: "DatabaseIDNo2", NotionPageContent: "sample"},
+			insertData: &model.Notion{UserID: u.ID, Date: 3, NotionToken: []byte("tokenNo2"), NotionDatabaseID: []byte("DatabaseIDNo2"), NotionPageContent: "sample"},
 		},
 	}
 
@@ -304,9 +305,9 @@ func TestUpdateNotionInfo(t *testing.T) {
 			var sameRecord bool
 			switch test.kind {
 			case token:
-				sameRecord = result.NotionToken == test.updateData
+				sameRecord = reflect.DeepEqual(result.NotionToken, test.updateData)
 			case databaseID:
-				sameRecord = result.NotionDatabaseID == test.updateData
+				sameRecord = reflect.DeepEqual(result.NotionDatabaseID, test.updateData)
 			case pageContent:
 				sameRecord = result.NotionPageContent == test.updateData
 			}
@@ -364,7 +365,7 @@ func TestRemove(t *testing.T) {
 			}
 
 			result, _ := dbOp.GetNotionInfo(test.userID)
-			if result.NotionToken != "" {
+			if len(result.NotionToken) == 0 {
 				t.Errorf("can't remove notion's token...result is %s\nwant is '' ", result.NotionToken)
 			}
 		})

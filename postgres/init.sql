@@ -31,8 +31,8 @@ CREATE TABLE t_notion (
     id serial PRIMARY KEY,
     t_user_id integer NOT NULL UNIQUE,
     date smallint NOT NULL,
-    notion_token varchar(255) NOT NULL,
-    notion_database_id varchar(255) NOT NULL,
+    notion_token bytea NOT NULL,
+    notion_database_id bytea NOT NULL,
     notion_page_content text,
     FOREIGN KEY (t_user_id) REFERENCES t_user (id)
         ON DELETE CASCADE

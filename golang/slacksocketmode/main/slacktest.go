@@ -74,8 +74,8 @@ func main() {
 						date, _ := strconv.Atoi(payload.View.State.Values["scheduler-date"]["static_select-action"].Value)
 						notion := model.Notion{
 							Date:              date,
-							NotionToken:       payload.View.State.Values["notion-token"]["plain_text_input-action"].Value,
-							NotionDatabaseID:  payload.View.State.Values["notion-database_id"]["plain_text_input-action"].Value,
+							NotionToken:       []byte(payload.View.State.Values["notion-token"]["plain_text_input-action"].Value),
+							NotionDatabaseID:  []byte(payload.View.State.Values["notion-database_id"]["plain_text_input-action"].Value),
 							NotionPageContent: payload.View.State.Values["notion-page_content"]["plain_text_input-action"].Value,
 						}
 						err = slackUC.RegisterNotionInfo(payload.Team.ID, payload.User.ID, notion)

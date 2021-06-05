@@ -1,7 +1,10 @@
 package usecase
 
 import (
+	"app/config"
 	"app/domain/function"
+	"crypto/aes"
+	"crypto/cipher"
 	"fmt"
 	"log"
 	"time"
@@ -19,6 +22,11 @@ func (cu *CommandUsecase) Start(userID int) {
 	if err != nil {
 		log.Printf("database notion get error: %+v", err)
 	}
+	// 機密情報を解読
+	plainTextForToken, plainTextForDatabaseID, err := decryptInfos(notion.NotionToken, notion.NotionDatabaseID)
+	if err != nil {
+		log.Printf("failed to decrypt: %+v", err)
+	}
 
 	jst, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
@@ -29,8 +37,8 @@ func (cu *CommandUsecase) Start(userID int) {
 
 	s := gocron.NewScheduler(jst)
 	templateUC := NewTemplateUsecase(cu.DBOperator)
-	s.Every(30).Seconds().Do(templateUC.CreateForTeamMeeting, notion.NotionDatabaseID, notion.NotionToken, userID) // TODO tokenの暗号化を複合する処理を記述する
-	s.Every(30).Seconds().Do(templateUC.CreateForGeneralMeeting, notion.NotionDatabaseID, notion.NotionToken, userID)
+	s.Every(30).Seconds().Do(templateUC.CreateForTeamMeeting, plainTextForDatabaseID, plainTextForToken, userID) // TODO tokenの暗号化を複合する処理を記述する
+	s.Every(30).Seconds().Do(templateUC.CreateForGeneralMeeting, plainTextForDatabaseID, plainTextForToken, userID)
 	// s.Every(1).Week().Tuesday().At("09:00").Tag("default").Do(templateUC.CreateForTeamMeeting, date)
 	// s.Every(1).Week().Wednesday().At("09:00").Tag("default").Do(templateUC.CreateForGeneralMeeting, date)
 	s.StartAsync()
@@ -51,4 +59,17 @@ func (cu *CommandUsecase) Stop(userID int) {
 	cancelCh := cu.ProcessManager[userID]
 	close(cancelCh)
 	delete(cu.ProcessManager, userID)
+}
+
+func decryptInfos(token, databaseID []byte) (string, string, error) {
+	block, err := aes.NewCipher([]byte(config.ENCRYPTION_KEY()))
+	if err != nil {
+		return "", "", fmt.Errorf("make cipher.Block error: %+v", err)
+	}
+
+	decryptedTextForToken, decryptedTextForDatabaseID := make([]byte, len(token[aes.BlockSize:])), make([]byte, len(databaseID[aes.BlockSize:]))
+	decryptStreamForToken, decryptStreamForDatabaseID := cipher.NewCTR(block, token[:aes.BlockSize]), cipher.NewCTR(block, databaseID[:aes.BlockSize])
+	decryptStreamForToken.XORKeyStream(decryptedTextForToken, token[aes.BlockSize:])
+	decryptStreamForDatabaseID.XORKeyStream(decryptedTextForDatabaseID, token[aes.BlockSize:])
+	return string(decryptedTextForToken), string(decryptedTextForDatabaseID), nil
 }

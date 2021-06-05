@@ -22,7 +22,7 @@ type Notion struct {
 	ID                int
 	UserID            int
 	Date              int
-	NotionToken       string
-	NotionDatabaseID  string
+	NotionToken       []byte
+	NotionDatabaseID  []byte
 	NotionPageContent string
 }

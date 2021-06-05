@@ -22,6 +22,10 @@ func WEBHOOK_URL() string {
 	return getterEnvInfo("WEBHOOK_URL")
 }
 
+func ENCRYPTION_KEY() string {
+	return getterEnvInfo("ENCRYPTION_KEY")
+}
+
 func NOTION_API_VERSION() string {
 	return getterEnvInfo("NOTION_API_VERSION")
 }

@@ -48,8 +48,8 @@ func (mh *ModalHandler) CallModalOperation(c echo.Context) error {
 		date, _ := strconv.Atoi(interactionObj.View.State.Values["scheduler-date"]["static_select-action"].Value)
 		notion := model.Notion{
 			Date:              date,
-			NotionToken:       interactionObj.View.State.Values["notion-token"]["plain_text_input-action"].Value,
-			NotionDatabaseID:  interactionObj.View.State.Values["notion-database_id"]["plain_text_input-action"].Value,
+			NotionToken:       []byte(interactionObj.View.State.Values["notion-token"]["plain_text_input-action"].Value),
+			NotionDatabaseID:  []byte(interactionObj.View.State.Values["notion-database_id"]["plain_text_input-action"].Value),
 			NotionPageContent: interactionObj.View.State.Values["notion-page_content"]["plain_text_input-action"].Value,
 		}
 		err = mh.slackUC.RegisterNotionInfo(interactionObj.Team.ID, interactionObj.User.ID, notion)
