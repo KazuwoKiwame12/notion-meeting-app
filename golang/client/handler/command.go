@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"app/config"
 	"app/usecase"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -65,18 +65,26 @@ func (ch *CommandHandler) UpdateSchedulerDate(c echo.Context) error {
 }
 
 func (ch *CommandHandler) ExplainHowToUse(c echo.Context) error {
-	text := "このアプリでは、notionに議事録のテンプレートページを定期的に自動生成するスケジューラを起動・停止することができます。\n" +
+	name := c.FormValue("user_name")
+	text := fmt.Sprintf("@%s\n", name) +
+		"このアプリでは、notionに議事録のテンプレートページを定期的に自動生成するスケジューラを起動・停止することができます。\n" +
 		"スケジューラを動かすためには、以下の手順を行います。\n" +
 		"1. ショートカット'Register the notion info'を選択し、表示されるモーダルにnotion情報を登録します。\n" +
 		"2. /startというslash commandを呼び出すことで、スケジューラが起動します。\n\n" +
 		"スケジューラを停止させるためには、/stopを実行すればスケジューラは停止します。\n" +
+		"また、notion情報を更新する際には、再度'1'の手順を実行してください。\n" +
 		"※1ユーザにつき1スケジューラであるために、現時点では複数台のスケジューラを起動させることができません。" +
 		"そのような機能が必要であれば、管理人に連絡してください。"
-	data := &slack.WebhookMessage{
-		Text: text,
-	}
-	if err := slack.PostWebhook(config.WEBHOOK_URL(), data); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	return c.JSON(http.StatusOK, nil)
+	payload := map[string]interface{}{
+		"blocks": []slack.Block{
+			slack.NewSectionBlock(
+				&slack.TextBlockObject{
+					Type: slack.MarkdownType,
+					Text: text,
+				},
+				nil,
+				nil,
+			),
+		}}
+	return c.JSON(http.StatusOK, payload)
 }
