@@ -4,12 +4,8 @@ import (
 	"app/config"
 	"app/domain/function"
 	"app/domain/model"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/slack-go/slack"
@@ -19,7 +15,7 @@ type SlackUsecase struct {
 	DBOperator *function.DatabaseOperater
 }
 
-func (su *SlackUsecase) GetModalView(triggerID string) error {
+func (su *SlackUsecase) GetModalView(userID int, triggerID string) error {
 	jsonfilePath := fmt.Sprintf("%s/src/app/asset/slack/modalview.json", os.Getenv("GOPATH")) // 絶対パスで参照(相対パスの場合、当然だが実行ファイルからの相対パスとして認識される)
 	viewBytes, err := os.ReadFile(jsonfilePath)
 	if err != nil {
@@ -28,6 +24,14 @@ func (su *SlackUsecase) GetModalView(triggerID string) error {
 	var viewObj slack.ModalViewRequest
 	if err := json.Unmarshal(viewBytes, &viewObj); err != nil {
 		return fmt.Errorf("jsonファイルのデータを構造体にマウントウトする際のエラー: %+v", err)
+	}
+
+	if notion, err := su.DBOperator.GetNotionInfo(userID); err == nil {
+		plainToken, plainDatabaseID, err := notion.GetDecyptInfo()
+		if err != nil {
+			return fmt.Errorf("get decrypt token and databaseID error: %+v", err)
+		}
+		su.embedInCurrentNotionInfos(&viewObj, plainToken, plainDatabaseID, notion.NotionPageContent, notion.Date)
 	}
 
 	slackClient := slack.New(config.SLACK_TOKEN())
@@ -44,8 +48,7 @@ func (su *SlackUsecase) RegisterNotionInfo(workspaceID, slackUserID string, noti
 		return fmt.Errorf("get user error: %+v", err)
 	}
 	notion.UserID = user.ID
-	notion.NotionToken, notion.NotionDatabaseID, err = encryptInfos(notion.NotionToken, notion.NotionDatabaseID)
-	if err != nil {
+	if err := notion.SetEncryptInfo(); err != nil {
 		return err
 	}
 
@@ -55,22 +58,19 @@ func (su *SlackUsecase) RegisterNotionInfo(workspaceID, slackUserID string, noti
 	return nil
 }
 
-func encryptInfos(token, databaseID []byte) ([]byte, []byte, error) {
-	block, err := aes.NewCipher([]byte(config.ENCRYPTION_KEY()))
-	if err != nil {
-		return []byte{}, []byte{}, fmt.Errorf("make cipher.Block error: %+v", err)
+func (su *SlackUsecase) embedInCurrentNotionInfos(viewObj *slack.ModalViewRequest, token, databaseID, pageContent string, date int) {
+	dateStringList := []string{"月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"}
+	embeddedData := []string{token, databaseID, pageContent, dateStringList[date]}
+	var index int = 3
+	for _, data := range embeddedData {
+		sec := viewObj.Blocks.BlockSet[index].(*slack.SectionBlock)
+		viewObj.Blocks.BlockSet[index] = &slack.SectionBlock{
+			Type: sec.Type,
+			Text: &slack.TextBlockObject{
+				Type: sec.Text.Type,
+				Text: sec.Text.Text + fmt.Sprintf("```%s```", data),
+			},
+		}
+		index += 2
 	}
-
-	cipheTextForToken, cipheTextForDatabaseID := make([]byte, aes.BlockSize+len(token)), make([]byte, aes.BlockSize+len(databaseID))
-	ivForToken, ivForDatabaseID := cipheTextForToken[:aes.BlockSize], cipheTextForDatabaseID[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, ivForToken); err != nil {
-		return []byte{}, []byte{}, fmt.Errorf("make iv for token error: %+v", err)
-	}
-	if _, err := io.ReadFull(rand.Reader, ivForDatabaseID); err != nil {
-		return []byte{}, []byte{}, fmt.Errorf("make iv for databaseID error: %+v", err)
-	}
-	encryptStreamForToken, encryptStreamForDatabaseID := cipher.NewCTR(block, ivForToken), cipher.NewCTR(block, ivForDatabaseID)
-	encryptStreamForToken.XORKeyStream(cipheTextForToken[aes.BlockSize:], token) // バイナリ形式でxorされるので、存在しない文字コードが発生するために、string変換できない
-	encryptStreamForDatabaseID.XORKeyStream(cipheTextForDatabaseID[aes.BlockSize:], databaseID)
-	return cipheTextForToken, cipheTextForDatabaseID, nil
 }

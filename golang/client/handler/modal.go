@@ -43,7 +43,8 @@ func (mh *ModalHandler) CallModalOperation(c echo.Context) error {
 	var err error
 	switch callbackID {
 	case "notion-info__form":
-		err = mh.slackUC.GetModalView(interactionObj.TriggerID)
+		userID, _ := strconv.Atoi(c.FormValue("user_id"))
+		err = mh.slackUC.GetModalView(userID, interactionObj.TriggerID)
 	case "notion-info__record":
 		date, _ := strconv.Atoi(interactionObj.View.State.Values["scheduler-date"]["static_select-action"].Value)
 		notion := model.Notion{

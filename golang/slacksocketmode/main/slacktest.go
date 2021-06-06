@@ -64,14 +64,22 @@ func main() {
 				case slack.InteractionTypeShortcut:
 					if payload.CallbackID == "notion-info__form" {
 						client.Ack(*envelope.Request)
-						err = slackUC.GetModalView(payload.TriggerID)
+						user, err := dbOp.GetUser(payload.User.TeamID, payload.User.ID)
+						if err != nil {
+							client.Debugf("\nFailed to get user from db: %v\n", err)
+						}
+						err = slackUC.GetModalView(user.ID, payload.TriggerID)
 						if err != nil {
 							client.Debugf("\nFailed to opemn a modal: %v\n", err)
 						}
 					}
 				case slack.InteractionTypeViewSubmission:
 					if payload.View.CallbackID == "notion-info__record" {
-						date, _ := strconv.Atoi(payload.View.State.Values["scheduler-date"]["static_select-action"].Value)
+						date, err := strconv.Atoi(payload.View.State.Values["scheduler-date"]["static_select-action"].SelectedOption.Value)
+						if err != nil {
+							client.Debugf("\nFailed to cast to int: %v, value: %d, original value: %s\n", err, date, payload.View.State.Values["scheduler-date"]["static_select-action"].SelectedOption.Value)
+						}
+
 						notion := model.Notion{
 							Date:              date,
 							NotionToken:       []byte(payload.View.State.Values["notion-token"]["plain_text_input-action"].Value),

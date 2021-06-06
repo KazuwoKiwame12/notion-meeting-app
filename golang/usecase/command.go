@@ -1,10 +1,7 @@
 package usecase
 
 import (
-	"app/config"
 	"app/domain/function"
-	"crypto/aes"
-	"crypto/cipher"
 	"fmt"
 	"log"
 	"time"
@@ -23,7 +20,7 @@ func (cu *CommandUsecase) Start(userID int) {
 		log.Printf("database notion get error: %+v", err)
 	}
 	// 機密情報を解読
-	plainTextForToken, plainTextForDatabaseID, err := decryptInfos(notion.NotionToken, notion.NotionDatabaseID)
+	plainTextForToken, plainTextForDatabaseID, err := notion.GetDecyptInfo()
 	if err != nil {
 		log.Printf("failed to decrypt: %+v", err)
 	}
@@ -59,17 +56,4 @@ func (cu *CommandUsecase) Stop(userID int) {
 	cancelCh := cu.ProcessManager[userID]
 	close(cancelCh)
 	delete(cu.ProcessManager, userID)
-}
-
-func decryptInfos(token, databaseID []byte) (string, string, error) {
-	block, err := aes.NewCipher([]byte(config.ENCRYPTION_KEY()))
-	if err != nil {
-		return "", "", fmt.Errorf("make cipher.Block error: %+v", err)
-	}
-
-	decryptedTextForToken, decryptedTextForDatabaseID := make([]byte, len(token[aes.BlockSize:])), make([]byte, len(databaseID[aes.BlockSize:]))
-	decryptStreamForToken, decryptStreamForDatabaseID := cipher.NewCTR(block, token[:aes.BlockSize]), cipher.NewCTR(block, databaseID[:aes.BlockSize])
-	decryptStreamForToken.XORKeyStream(decryptedTextForToken, token[aes.BlockSize:])
-	decryptStreamForDatabaseID.XORKeyStream(decryptedTextForDatabaseID, token[aes.BlockSize:])
-	return string(decryptedTextForToken), string(decryptedTextForDatabaseID), nil
 }
