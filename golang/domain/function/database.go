@@ -103,41 +103,6 @@ func (do *DatabaseOperater) GetNotionInfo(userID int) (*model.Notion, error) {
 	return notion, nil
 }
 
-func (do *DatabaseOperater) UpdateNotionToken(token string, userID int) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = $1 WHERE t_user_id = $2", token, userID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (do *DatabaseOperater) UpdateNotionDatabaseID(databaseID string, userID int) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_database_id = $1 WHERE t_user_id = $2", databaseID, userID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (do *DatabaseOperater) UpdateNotionPageContent(pageContent string, userID int) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_page_content = $1 WHERE t_user_id = $2", pageContent, userID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (do *DatabaseOperater) UpdateDateToCreate(date int, userID int) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET date = $1 WHERE t_user_id = $2", date, userID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (do *DatabaseOperater) RemoveaNotionToken(userID int) error {
-	if _, err := do.SqlHandler.Execute("UPDATE t_notion SET notion_token = $1 WHERE t_user_id = $2", "", userID); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (do *DatabaseOperater) makePlaceHolders(numOfInsertValues, numOfColumns int) string {
 	placeholdersList := make([]string, numOfInsertValues)
 	var count int = 1
