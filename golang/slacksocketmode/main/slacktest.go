@@ -43,6 +43,17 @@ func main() {
 		DBOperator: dbOp,
 	}
 
+	processManager := make(map[int]chan<- struct{})
+	defer func() {
+		for _, process := range processManager {
+			close(process)
+		}
+	}()
+	commandUC := &usecase.CommandUsecase{
+		ProcessManager: processManager,
+		DBOperator:     dbOp,
+	}
+
 	webApi := slack.New(
 		os.Getenv("SLACK_TOKEN"),
 		slack.OptionAppLevelToken(os.Getenv("SLACK_SOCKET_TOKEN")),
@@ -73,6 +84,7 @@ func main() {
 							client.Debugf("\nFailed to opemn a modal: %v\n", err)
 						}
 					}
+					client.Ack(*envelope.Request, createResponseMessage("shortcut called!"))
 				case slack.InteractionTypeViewSubmission:
 					if payload.View.CallbackID == "notion-info__record" {
 						date, err := strconv.Atoi(payload.View.State.Values["scheduler-date"]["static_select-action"].SelectedOption.Value)
@@ -90,6 +102,7 @@ func main() {
 						if err != nil {
 							client.Debugf("\nFailed to register notion info: %v\n", err)
 						}
+						client.Ack(*envelope.Request, createResponseMessage("registered!"))
 					}
 				default:
 					client.Debugf("\nSkipped: %v\n", payload)
@@ -98,37 +111,52 @@ func main() {
 				cmd, ok := envelope.Data.(slack.SlashCommand)
 				if !ok {
 					fmt.Printf("Ignored %+v\n", envelope)
-
 					continue
 				}
 
 				client.Debugf("Slash command received: %+v", cmd)
 
-				text := fmt.Sprintf("@%s\n", cmd.UserName) +
-					"このアプリでは、notionに議事録のテンプレートページを定期的に自動生成するスケジューラを起動・停止することができます。\n" +
-					"スケジューラを動かすためには、以下の手順を行います。\n" +
-					"1. ショートカット'Register the notion info'を選択し、表示されるモーダルにnotion情報を登録します。\n" +
-					"2. /startというslash commandを呼び出すことで、スケジューラが起動します。\n\n" +
-					"スケジューラを停止させるためには、/stopを実行すればスケジューラは停止します。\n" +
-					"また、notion情報を更新する際には、再度'1'の手順を実行してください。\n" +
-					"※1ユーザにつき1スケジューラであるために、現時点では複数台のスケジューラを起動させることができません。" +
-					"そのような機能が必要であれば、管理人に連絡してください。"
-				payload := map[string]interface{}{
-					"blocks": []slack.Block{
-						slack.NewSectionBlock(
-							&slack.TextBlockObject{
-								Type: slack.MarkdownType,
-								Text: text,
-							},
-							nil,
-							nil,
-						),
-					}}
-				client.Ack(*envelope.Request, payload)
+				switch cmd.Command {
+				case "/explain":
+					text := fmt.Sprintf("@%s\n", cmd.UserName) +
+						"このアプリでは、notionに議事録のテンプレートページを定期的に自動生成するスケジューラを起動・停止することができます。\n" +
+						"スケジューラを動かすためには、以下の手順を行います。\n" +
+						"1. ショートカット'Register the notion info'を選択し、表示されるモーダルにnotion情報を登録します。\n" +
+						"2. /startというslash commandを呼び出すことで、スケジューラが起動します。\n\n" +
+						"スケジューラを停止させるためには、/stopを実行すればスケジューラは停止します。\n" +
+						"また、notion情報を更新する際には、再度'1'の手順を実行してください。\n" +
+						"※1ユーザにつき1スケジューラであるために、現時点では複数台のスケジューラを起動させることができません。" +
+						"そのような機能が必要であれば、管理人に連絡してください。"
+					client.Ack(*envelope.Request, createResponseMessage(text))
+				case "/start":
+					user, err := dbOp.GetUser(cmd.TeamID, cmd.UserID)
+					if err != nil {
+						client.Debugf("\nFailed to get user: %v\n", err)
+					}
+					go commandUC.Start(user.ID)
+					client.Ack(*envelope.Request, createResponseMessage("executed!"))
+				}
 			default:
 				client.Debugf("\nSkipped: %v\n", envelope.Type)
 			}
 		}
 	}()
 	client.Run()
+}
+
+func createResponseMessage(text string) map[string]interface{} {
+	responseMsg := map[string]interface{}{
+		"blocks": []slack.Block{
+			slack.NewSectionBlock(
+				&slack.TextBlockObject{
+					Type: slack.MarkdownType,
+					Text: text,
+				},
+				nil,
+				nil,
+			),
+		},
+	}
+
+	return responseMsg
 }

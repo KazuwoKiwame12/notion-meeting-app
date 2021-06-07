@@ -3,14 +3,7 @@ package usecase
 import (
 	"app/domain/function"
 	"app/domain/model"
-	"log"
-)
-
-type category int
-
-const (
-	isTeam category = iota
-	isGeneral
+	"strings"
 )
 
 type TemplateUsecase struct {
@@ -18,112 +11,189 @@ type TemplateUsecase struct {
 	dbOperator *function.DatabaseOperater
 }
 
+const (
+	blockTypeIndex int = iota
+	textIndex
+	numOfContents
+)
+
 func NewTemplateUsecase(dbOperator *function.DatabaseOperater) *TemplateUsecase {
-	// TDODO 構成を考え直す＝アーキテクチャ考える...usecaseでuseidに紐着くtokenやpage content取得してインスタンス作るのあり
 	return &TemplateUsecase{
 		client:     function.NewNotionClient(),
 		dbOperator: dbOperator,
 	}
 }
 
-func (t *TemplateUsecase) CreateForTeamMeeting(databaseID, token, date string) error {
-	params := t.createTemplateFormat(databaseID, date, isTeam)
-	err := t.client.CreatePage(token, *params)
-	if err != nil {
-		log.Printf("notion create page error: %+v", err)
-	}
-
-	return err
-}
-
-func (t *TemplateUsecase) CreateForGeneralMeeting(databaseID, token, date string) error {
-	params := t.createTemplateFormat(databaseID, date, isGeneral)
+func (t *TemplateUsecase) CreateForMeeting(databaseID, token, pageContent string) error {
+	params := t.createTemplateFormat(databaseID, pageContent)
 	return t.client.CreatePage(token, *params)
 }
 
-func (t *TemplateUsecase) createTemplateFormat(databaseID, date string, categ category) *model.Template {
+func (t *TemplateUsecase) createTemplateFormat(databaseID, pageContent string) *model.Template {
 	params := &model.Template{}
 	// database idの指定
 	params.Parent.DatabaseID = databaseID
 
-	// タイトルの作成
-	var title string
-	if categ == isTeam {
-		title = date + "チームミーティング"
-	} else {
-		title = date + "全体ミーティング"
+	blocksByString := strings.Split(pageContent, "\n")
+	title := strings.Split(blocksByString[0], " ")
+
+	existBlockType := func(typeName string) bool {
+		checker := map[model.BlockType]struct{}{
+			model.BlockTypeParagraph:        struct{}{},
+			model.BlockTypeHeading1:         struct{}{},
+			model.BlockTypeHeading2:         struct{}{},
+			model.BlockTypeHeading3:         struct{}{},
+			model.BlockTypeBulletedListItem: struct{}{},
+			model.BlockTypeNumberedListItem: struct{}{},
+			model.BlockTypeToDo:             struct{}{},
+			model.BlockTypeToggle:           struct{}{},
+			model.BlockType("title"):        struct{}{},
+		}
+		_, ok := checker[model.BlockType(typeName)]
+		return ok
 	}
+
+	createTextFromContents := func(contents []string) string {
+		var text string
+		if len(contents) > numOfContents {
+			if existBlockType(contents[blockTypeIndex]) {
+				text = strings.Join(contents[textIndex:], " ")
+			} else {
+				text = strings.Join(contents, " ")
+			}
+		} else if len(contents) == numOfContents {
+			if existBlockType(contents[blockTypeIndex]) {
+				text = contents[textIndex]
+			} else {
+				text = strings.Join(contents, " ")
+			}
+		} else if len(contents) == 1 {
+			text = contents[0]
+		} else {
+			text = ""
+		}
+
+		return text
+	}
+
 	params.Properties.Name.Title = append(params.Properties.Name.Title, struct {
 		model.Text `json:"text"`
 	}{
 		Text: model.Text{
-			Content: title,
+			Content: createTextFromContents(title),
 		},
 	})
-	/*
-		blockの作成
-		共通で使うブロックの作成
-	*/
-	//Header2のブロック作成
-	defaultTexts := []string{"進捗報告", "勉強会", "英語論文"}
-	defaultHeaders := t.createBlocks(defaultTexts, model.BlockTypeHeading2)
-	// 空白ブロックの作成
-	blanckBlock := model.Block{
-		Object: "block",
-		Type:   model.BlockTypeParagraph,
-		Paragraph: &model.RichTextBlock{
-			Text: []model.RichText{
-				{
-					Type: "text",
-					Text: &model.Text{
-						Content: "",
-					},
-				},
-			},
-		},
-	}
-	// ブロックのリストの作成
-	listBlock := make([]model.Block, 6)
-	for i := 0; i < len(listBlock); i++ {
-		if i%2 == 0 {
-			listBlock[i] = defaultHeaders[i/2]
-		} else {
-			listBlock[i] = blanckBlock
-		}
-	}
 
-	var insertBlocks []model.Block
-	/*Childrenの作成*/
-	if categ == isTeam {
-		insertBlocks = listBlock
-	} else {
-		teams := []string{"チームN", "チームI", "チームS"}
-		teamsHeaders := t.createBlocks(teams, model.BlockTypeHeading1)
-		numOfBlocks := len(teams)*len(listBlock) + len(teams)
-		insertBlocks = make([]model.Block, numOfBlocks)
-		for i := 0; i < len(teams); i++ {
-			startIndex := i * 7
-			insertBlocks[startIndex] = teamsHeaders[i]
-			for j, block := range listBlock {
-				startIndexForListBlock := startIndex + 1
-				insertBlocks[startIndexForListBlock+j] = block
-			}
-		}
+	params.Children = make([]model.Block, 0, len(blocksByString[1:]))
+	for _, blockByString := range blocksByString[1:] {
+		contents := strings.Split(blockByString, " ")
+		text := createTextFromContents(contents)
+		block := t.createBlock(text, model.BlockType(contents[blockTypeIndex]))
+		params.Children = append(params.Children, *block)
 	}
-	params.Children = insertBlocks
 
 	return params
 }
 
-func (t *TemplateUsecase) createBlocks(texts []string, blocktype model.BlockType) []model.Block {
-	blocks := make([]model.Block, len(texts))
-	for index, text := range texts {
-		switch blocktype {
-		case model.BlockTypeParagraph:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				Paragraph: &model.RichTextBlock{
+func (t *TemplateUsecase) createBlock(text string, blocktype model.BlockType) *model.Block {
+	var block *model.Block
+	switch blocktype {
+	case model.BlockTypeParagraph:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			Paragraph: &model.RichTextBlock{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
+						},
+					},
+				},
+			},
+		}
+	case model.BlockTypeHeading1:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			Heading1: &model.Heading{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
+						},
+					},
+				},
+			},
+		}
+	case model.BlockTypeHeading2:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			Heading2: &model.Heading{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
+						},
+					},
+				},
+			},
+		}
+	case model.BlockTypeHeading3:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			Heading3: &model.Heading{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
+						},
+					},
+				},
+			},
+		}
+	case model.BlockTypeBulletedListItem:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			BulletedListItem: &model.RichTextBlock{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
+						},
+					},
+				},
+			},
+		}
+	case model.BlockTypeNumberedListItem:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			NumberedListItem: &model.RichTextBlock{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
+						},
+					},
+				},
+			},
+		}
+	case model.BlockTypeToDo:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			ToDo: &model.ToDo{
+				RichTextBlock: model.RichTextBlock{
 					Text: []model.RichText{
 						{
 							Type: "text",
@@ -133,115 +203,39 @@ func (t *TemplateUsecase) createBlocks(texts []string, blocktype model.BlockType
 						},
 					},
 				},
-			}
-		case model.BlockTypeHeading1:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				Heading1: &model.Heading{
-					Text: []model.RichText{
-						{
-							Type: "text",
-							Text: &model.Text{
-								Content: text,
-							},
+			},
+		}
+	case model.BlockTypeToggle:
+		block = &model.Block{
+			Object: "block",
+			Type:   blocktype,
+			Toggle: &model.RichTextBlock{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
 						},
 					},
 				},
-			}
-		case model.BlockTypeHeading2:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				Heading2: &model.Heading{
-					Text: []model.RichText{
-						{
-							Type: "text",
-							Text: &model.Text{
-								Content: text,
-							},
+			},
+		}
+	default:
+		block = &model.Block{
+			Object: "block",
+			Type:   model.BlockTypeParagraph,
+			Paragraph: &model.RichTextBlock{
+				Text: []model.RichText{
+					{
+						Type: "text",
+						Text: &model.Text{
+							Content: text,
 						},
 					},
 				},
-			}
-		case model.BlockTypeHeading3:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				Heading3: &model.Heading{
-					Text: []model.RichText{
-						{
-							Type: "text",
-							Text: &model.Text{
-								Content: text,
-							},
-						},
-					},
-				},
-			}
-		case model.BlockTypeBulletedListItem:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				BulletedListItem: &model.RichTextBlock{
-					Text: []model.RichText{
-						{
-							Type: "text",
-							Text: &model.Text{
-								Content: text,
-							},
-						},
-					},
-				},
-			}
-		case model.BlockTypeNumberedListItem:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				NumberedListItem: &model.RichTextBlock{
-					Text: []model.RichText{
-						{
-							Type: "text",
-							Text: &model.Text{
-								Content: text,
-							},
-						},
-					},
-				},
-			}
-		case model.BlockTypeToDo:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				ToDo: &model.ToDo{
-					RichTextBlock: model.RichTextBlock{
-						Text: []model.RichText{
-							{
-								Type: "text",
-								Text: &model.Text{
-									Content: text,
-								},
-							},
-						},
-					},
-				},
-			}
-		case model.BlockTypeToggle:
-			blocks[index] = model.Block{
-				Object: "block",
-				Type:   blocktype,
-				Toggle: &model.RichTextBlock{
-					Text: []model.RichText{
-						{
-							Type: "text",
-							Text: &model.Text{
-								Content: text,
-							},
-						},
-					},
-				},
-			}
+			},
 		}
 	}
-	return blocks
+
+	return block
 }

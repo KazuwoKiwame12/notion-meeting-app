@@ -26,14 +26,6 @@ func ENCRYPTION_KEY() string {
 	return getterEnvInfo("ENCRYPTION_KEY")
 }
 
-func NOTION_API_VERSION() string {
-	return getterEnvInfo("NOTION_API_VERSION")
-}
-
-func NOTION_API_URL() string {
-	return getterEnvInfo("NOTION_API_URL")
-}
-
 func getterEnvInfo(key string) string {
 	return os.Getenv(key)
 }

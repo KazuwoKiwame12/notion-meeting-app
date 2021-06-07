@@ -28,10 +28,10 @@ func NewCommandHandler(commandUC *usecase.CommandUsecase) *CommandHandler {
 func (ch *CommandHandler) StartScheduler(c echo.Context) error {
 	userID, _ := strconv.Atoi(c.FormValue("user_id"))
 	if _, alreadyExsit := ch.commandUC.ProcessManager[userID]; alreadyExsit {
-		return c.JSON(http.StatusLocked, responseJson{StatusCode: http.StatusLocked, Message: "your scheduler is already runned"})
+		return c.JSON(http.StatusLocked, ch.createResponseMessage("your scheduler is already runned"))
 	}
 	go ch.commandUC.Start(userID)
-	return c.JSON(http.StatusAccepted, responseJson{StatusCode: http.StatusAccepted, Message: "your request successed!! scheduler is runnning ..."})
+	return c.JSON(http.StatusAccepted, ch.createResponseMessage("your request successed!! scheduler is runnning ..."))
 }
 
 func (ch *CommandHandler) StopScheduler(c echo.Context) error {
@@ -74,4 +74,21 @@ func (ch *CommandHandler) CheckAllProcess(c echo.Context) error {
 
 func (ch *CommandHandler) StopAllProcess(c echo.Context) error {
 	// TODO 実装
+}
+
+func (ch *CommandHandler) createResponseMessage(text string) map[string]interface{} {
+	responseMsg := map[string]interface{}{
+		"blocks": []slack.Block{
+			slack.NewSectionBlock(
+				&slack.TextBlockObject{
+					Type: slack.MarkdownType,
+					Text: text,
+				},
+				nil,
+				nil,
+			),
+		},
+	}
+
+	return responseMsg
 }
