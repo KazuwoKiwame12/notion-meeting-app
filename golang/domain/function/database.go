@@ -77,6 +77,31 @@ func (do *DatabaseOperater) GetAdministrator() (*model.User, error) {
 	return user, nil
 }
 
+func (do *DatabaseOperater) GetUserNameList(userIDs []int) ([]string, error) {
+	convertDataForQuery := func(ids []int, numOfColumns int) []interface{} {
+		bind := make([]interface{}, len(ids)*numOfColumns)
+		var index int = 0
+		for _, id := range ids {
+			bind[index] = id
+			index += numOfColumns
+		}
+		return bind
+	}
+	query := fmt.Sprintf("SELECT name FROM t_user WHERE id IN %s", do.makePlaceHolders(1, len(userIDs)))
+	rows, err := do.SqlHandler.Query(query, convertDataForQuery(userIDs, 1)...)
+	if err != nil {
+		return nil, err
+	}
+
+	nameList := make([]string, len(userIDs))
+	for i := 0; rows.Next(); i++ {
+		if err := rows.Scan(&nameList[i]); err != nil {
+			return nil, err
+		}
+	}
+	return nameList, nil
+}
+
 func (do *DatabaseOperater) RegisterNotionInfo(n *model.Notion) error {
 	queryForUpdatePart := "UPDATE SET date = EXCLUDED.date, notion_token = EXCLUDED.notion_token, notion_database_id=EXCLUDED.notion_database_id, notion_page_content=EXCLUDED.notion_page_content"
 	query := fmt.Sprintf("INSERT INTO t_notion(t_user_id, date, notion_token, notion_database_id, notion_page_content) values %s ON CONFLICT(t_user_id) DO %s", do.makePlaceHolders(1, 5), queryForUpdatePart)
