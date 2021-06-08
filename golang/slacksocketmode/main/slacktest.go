@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app/config"
 	"app/domain/function"
 	"app/domain/model"
 	"app/infrastructure"
@@ -121,8 +122,8 @@ func main() {
 					text := fmt.Sprintf("@%s\n", cmd.UserName) +
 						"このアプリでは、notionに議事録のテンプレートページを定期的に自動生成するスケジューラを起動・停止することができます。\n" +
 						"スケジューラを動かすためには、以下の手順を行います。\n" +
-						"1. ショートカット'Register the notion info'を選択し、表示されるモーダルにnotion情報を登録します。\n" +
-						"2. /startというslash commandを呼び出すことで、スケジューラが起動します。\n\n" +
+						"```1. ショートカット'Register the notion info'を選択し、表示されるモーダルにnotion情報を登録します。\n" +
+						"2. /startというslash commandを呼び出すことで、スケジューラが起動します。```\n\n" +
 						"スケジューラを停止させるためには、/stopを実行すればスケジューラは停止します。\n" +
 						"また、notion情報を更新する際には、再度'1'の手順を実行してください。\n" +
 						"※1ユーザにつき1スケジューラであるために、現時点では複数台のスケジューラを起動させることができません。" +
@@ -135,6 +136,31 @@ func main() {
 					}
 					go commandUC.Start(user.ID)
 					client.Ack(*envelope.Request, createResponseMessage("executed!"))
+				case "/stop":
+					user, err := dbOp.GetUser(cmd.TeamID, cmd.UserID)
+					if err != nil {
+						client.Debugf("\nFailed to get user: %v\n", err)
+					}
+					go commandUC.Stop(user.ID)
+					client.Ack(*envelope.Request, createResponseMessage("called!"))
+				case "/all":
+					text, err := commandUC.All()
+					if err != nil {
+						text = "名前の取得時にエラーが発生しました。"
+						client.Ack(*envelope.Request, createResponseMessage(text))
+					} else {
+						client.Ack(*envelope.Request, createResponseMessage("```"+text+"```"))
+					}
+				case "/all-stop":
+					commandUC.AllStop()
+					msg := &slack.WebhookMessage{
+						Text: "@channel\nメンテナンスのために、スケジューラを全て停止しました。再度スケジューラをスタート可能になった際に通知いたします。",
+					}
+					if err := slack.PostWebhook(config.WEBHOOK_URL(), msg); err != nil {
+						client.Ack(*envelope.Request, "")
+					} else {
+						client.Ack(*envelope.Request, "全てのスケジューラを停止させました。")
+					}
 				}
 			default:
 				client.Debugf("\nSkipped: %v\n", envelope.Type)
