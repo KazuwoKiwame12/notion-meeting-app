@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"app/config"
 	"app/usecase"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -28,52 +28,44 @@ func NewCommandHandler(commandUC *usecase.CommandUsecase) *CommandHandler {
 func (ch *CommandHandler) StartScheduler(c echo.Context) error {
 	userID, _ := strconv.Atoi(c.FormValue("user_id"))
 	if _, alreadyExsit := ch.commandUC.ProcessManager[userID]; alreadyExsit {
-		return c.JSON(http.StatusLocked, ch.createResponseMessage("your scheduler is already runned"))
+		return c.JSON(http.StatusOK, ch.createResponseMessage("your scheduler is already runned"))
 	}
 	go ch.commandUC.Start(userID)
-	return c.JSON(http.StatusAccepted, ch.createResponseMessage("your request successed!! scheduler is runnning ..."))
+	return c.JSON(http.StatusOK, ch.createResponseMessage("your request successed!! scheduler is runnning ..."))
 }
 
 func (ch *CommandHandler) StopScheduler(c echo.Context) error {
 	userID, _ := strconv.Atoi(c.FormValue("user_id"))
 	if _, alreadyExsit := ch.commandUC.ProcessManager[userID]; !alreadyExsit {
-		return c.JSON(http.StatusBadRequest, responseJson{StatusCode: http.StatusBadRequest, Message: "your scheduler is already canceled or you didn't start your scheduler"})
+		return c.JSON(http.StatusOK, ch.createResponseMessage("your scheduler is already canceled or you didn't start your scheduler"))
 	}
 	go ch.commandUC.Stop(userID)
-	return c.JSON(http.StatusOK, responseJson{StatusCode: http.StatusOK, Message: "your request successed!! scheduler is canceled"})
+	return c.JSON(http.StatusOK, ch.createResponseMessage("your request successed!! scheduler is canceled"))
 }
 
 func (ch *CommandHandler) ExplainHowToUse(c echo.Context) error {
 	name := c.FormValue("user_name")
-	text := fmt.Sprintf("@%s\n", name) +
-		"このアプリでは、notionに議事録のテンプレートページを定期的に自動生成するスケジューラを起動・停止することができます。\n" +
-		"スケジューラを動かすためには、以下の手順を行います。\n" +
-		"1. ショートカット'Register the notion info'を選択し、表示されるモーダルにnotion情報を登録します。\n" +
-		"2. /startというslash commandを呼び出すことで、スケジューラが起動します。\n\n" +
-		"スケジューラを停止させるためには、/stopを実行すればスケジューラは停止します。\n" +
-		"また、notion情報を更新する際には、再度'1'の手順を実行してください。\n" +
-		"※1ユーザにつき1スケジューラであるために、現時点では複数台のスケジューラを起動させることができません。" +
-		"そのような機能が必要であれば、管理人に連絡してください。"
-	payload := map[string]interface{}{
-		"blocks": []slack.Block{
-			slack.NewSectionBlock(
-				&slack.TextBlockObject{
-					Type: slack.MarkdownType,
-					Text: text,
-				},
-				nil,
-				nil,
-			),
-		}}
-	return c.JSON(http.StatusOK, payload)
+	return c.JSON(http.StatusOK, ch.commandUC.GetExplainMessage(name))
 }
 
 func (ch *CommandHandler) CheckAllProcess(c echo.Context) error {
-	// TODO 実装
+	text, err := ch.commandUC.All()
+	if err != nil {
+		text = "名前の取得時にエラーが発生しました。"
+		return c.JSON(http.StatusOK, ch.createResponseMessage(text))
+	}
+	return c.JSON(http.StatusOK, ch.createResponseMessage("```"+text+"```"))
 }
 
 func (ch *CommandHandler) StopAllProcess(c echo.Context) error {
-	// TODO 実装
+	ch.commandUC.AllStop()
+	msg := &slack.WebhookMessage{
+		Text: "@channel\nメンテナンスのために、スケジューラを全て停止しました。再度スケジューラをスタート可能になった際に通知いたします。",
+	}
+	if err := slack.PostWebhook(config.WEBHOOK_URL(), msg); err != nil {
+		return c.JSON(http.StatusOK, "")
+	}
+	return c.JSON(http.StatusOK, ch.createResponseMessage("全てのスケジューラを停止させました。"))
 }
 
 func (ch *CommandHandler) createResponseMessage(text string) map[string]interface{} {
@@ -89,6 +81,5 @@ func (ch *CommandHandler) createResponseMessage(text string) map[string]interfac
 			),
 		},
 	}
-
 	return responseMsg
 }
