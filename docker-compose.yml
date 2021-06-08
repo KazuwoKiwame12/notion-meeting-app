@@ -13,7 +13,6 @@ services:
     db:
         container_name: notion-meeting-app-db
         build: ./postgres
-        env_file: ./.env
         environment:
             POSTGRES_PASSWORD: postgres
             POSTGRES_USER: postgres
