@@ -16,7 +16,6 @@ var w *model.Workspace = &model.Workspace{ID: "W100", Name: "test1"}
 var u *model.User = &model.User{SlackUserID: "U100", WorkspaceID: w.ID, IsAdministrator: true, Name: "sample100"}
 var n *model.Notion = &model.Notion{UserID: u.ID, Date: 2, NotionToken: []byte("tokenNo1"), NotionDatabaseID: []byte("DatabaseIDNo1"), NotionPageContent: "sample"}
 
-// TODO テストコードの記入
 func CreateData(sh *infrastructure.SqlHandler) {
 	queryForWorkspace := "INSERT INTO t_workspace(id, name) VALUES($1, $2)"
 	queryForUser := "INSERT INTO t_user(id, slack_user_id, t_workspace_id, is_administrator, name) VALUES($1, $2, $3, $4, $5)"
@@ -134,6 +133,36 @@ func TestGetUser(t *testing.T) {
 			result, err := dbOp.GetAdministrator()
 			if err != nil || !hasSameRecord(result, test.want) {
 				t.Errorf("get user error ocurred: %+v\nresult is %+v\nwant is %+v\n", err, result, test.want)
+			}
+		})
+	}
+}
+
+func TestGetUserNameList(t *testing.T) {
+	tests := []struct {
+		name string
+		ids  []int
+		want []string
+	}{
+		{
+			name: "userの名前を一括取得する",
+			ids:  []int{u.ID},
+			want: []string{u.Name},
+		},
+	}
+
+	dbOp := getDbOperatorInstance()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			nameList, err := dbOp.GetUserNameList(test.ids)
+			if err != nil {
+				t.Errorf("get user name list error ocurred: %+v\nresult is %+v\nwant is %+v\n", err, nameList, test.want)
+			}
+
+			for index, name := range nameList {
+				if test.want[index] != name {
+					t.Errorf("Failed to get the correct name: %+v\nresult is %+v\nwant is %+v\n", err, name, test.want[index])
+				}
 			}
 		})
 	}
