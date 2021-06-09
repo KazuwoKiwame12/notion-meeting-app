@@ -85,7 +85,6 @@ func main() {
 							client.Debugf("\nFailed to opemn a modal: %v\n", err)
 						}
 					}
-					client.Ack(*envelope.Request, createResponseMessage("shortcut called!"))
 				case slack.InteractionTypeViewSubmission:
 					if payload.View.CallbackID == "notion-info__record" {
 						date, err := strconv.Atoi(payload.View.State.Values["scheduler-date"]["static_select-action"].SelectedOption.Value)
@@ -99,11 +98,19 @@ func main() {
 							NotionDatabaseID:  []byte(payload.View.State.Values["notion-database_id"]["plain_text_input-action"].Value),
 							NotionPageContent: payload.View.State.Values["notion-page_content"]["plain_text_input-action"].Value,
 						}
-						err = slackUC.RegisterNotionInfo(payload.Team.ID, payload.User.ID, notion)
-						if err != nil {
-							client.Debugf("\nFailed to register notion info: %v\n", err)
+
+						msg := &slack.WebhookMessage{
+							Blocks: &slack.Blocks{
+								BlockSet: createResponseBlocks(fmt.Sprintf("@%s\nnotionの情報を登録しました。", payload.User.Name)),
+							},
 						}
-						client.Ack(*envelope.Request, createResponseMessage("registered!"))
+						if err := slackUC.RegisterNotionInfo(payload.Team.ID, payload.User.ID, notion); err != nil {
+							client.Debugf("\nFailed to register notion info: %v\n", err)
+							// msg.Text = fmt.Sprintf("@%s\nnotionの情報の登録に失敗しました。", payload.User.Name)
+						}
+						if err := slack.PostWebhook(config.WEBHOOK_URL(), msg); err != nil {
+							client.Debugf("Failed to call incominng web hook: %+v\n", err)
+						}
 					}
 				default:
 					client.Debugf("\nSkipped: %v\n", payload)
@@ -119,44 +126,40 @@ func main() {
 
 				switch cmd.Command {
 				case "/explain":
-					text := fmt.Sprintf("@%s\n", cmd.UserName) +
-						"このアプリでは、notionに議事録のテンプレートページを定期的に自動生成するスケジューラを起動・停止することができます。\n" +
-						"スケジューラを動かすためには、以下の手順を行います。\n" +
-						"```1. ショートカット'Register the notion info'を選択し、表示されるモーダルにnotion情報を登録します。\n" +
-						"2. /startというslash commandを呼び出すことで、スケジューラが起動します。```\n\n" +
-						"スケジューラを停止させるためには、/stopを実行すればスケジューラは停止します。\n" +
-						"また、notion情報を更新する際には、再度'1'の手順を実行してください。\n" +
-						"※1ユーザにつき1スケジューラであるために、現時点では複数台のスケジューラを起動させることができません。" +
-						"そのような機能が必要であれば、管理人に連絡してください。"
-					client.Ack(*envelope.Request, createResponseMessage(text))
+					client.Ack(*envelope.Request, commandUC.GetExplainMessage(cmd.UserName))
 				case "/start":
 					user, err := dbOp.GetUser(cmd.TeamID, cmd.UserID)
 					if err != nil {
 						client.Debugf("\nFailed to get user: %v\n", err)
 					}
 					go commandUC.Start(user.ID)
-					client.Ack(*envelope.Request, createResponseMessage("executed!"))
+
+					client.Ack(*envelope.Request, map[string]interface{}{"blocks": createResponseBlocks("your request successed!! scheduler is runnning ...")})
 				case "/stop":
 					user, err := dbOp.GetUser(cmd.TeamID, cmd.UserID)
 					if err != nil {
 						client.Debugf("\nFailed to get user: %v\n", err)
 					}
 					go commandUC.Stop(user.ID)
-					client.Ack(*envelope.Request, createResponseMessage("called!"))
+					client.Ack(*envelope.Request, map[string]interface{}{"blocks": createResponseBlocks("your request successed!! scheduler is canceled")})
 				case "/all":
 					text, err := commandUC.All()
 					if err != nil {
 						text = "名前の取得時にエラーが発生しました。"
-						client.Ack(*envelope.Request, createResponseMessage(text))
+						client.Ack(*envelope.Request, map[string]interface{}{"blocks": createResponseBlocks(text)})
 					} else {
-						client.Ack(*envelope.Request, createResponseMessage("```"+text+"```"))
+						client.Ack(*envelope.Request, map[string]interface{}{"blocks": createResponseBlocks("```" + text + "```")})
 					}
 				case "/all-stop":
 					commandUC.AllStop()
 					msg := &slack.WebhookMessage{
-						Text: "@channel\nメンテナンスのために、スケジューラを全て停止しました。再度スケジューラをスタート可能になった際に通知いたします。",
+						Blocks: &slack.Blocks{
+							BlockSet: createResponseBlocks("@channel\nメンテナンスのために、スケジューラを全て停止しました。再度スケジューラをスタート可能になった際に通知いたします。"),
+						},
 					}
+
 					if err := slack.PostWebhook(config.WEBHOOK_URL(), msg); err != nil {
+						log.Printf("Failed to call incominng web hook: %+v\n", err)
 						client.Ack(*envelope.Request, "")
 					} else {
 						client.Ack(*envelope.Request, "全てのスケジューラを停止させました。")
@@ -170,19 +173,16 @@ func main() {
 	client.Run()
 }
 
-func createResponseMessage(text string) map[string]interface{} {
-	responseMsg := map[string]interface{}{
-		"blocks": []slack.Block{
-			slack.NewSectionBlock(
-				&slack.TextBlockObject{
-					Type: slack.MarkdownType,
-					Text: text,
-				},
-				nil,
-				nil,
-			),
-		},
+func createResponseBlocks(text string) []slack.Block {
+	responseBlocks := []slack.Block{
+		slack.NewSectionBlock(
+			&slack.TextBlockObject{
+				Type: slack.MarkdownType,
+				Text: text,
+			},
+			nil,
+			nil,
+		),
 	}
-
-	return responseMsg
+	return responseBlocks
 }
