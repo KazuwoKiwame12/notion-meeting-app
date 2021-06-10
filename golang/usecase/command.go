@@ -217,7 +217,7 @@ func (cu *CommandUsecase) GetExplainMessage(name string) map[string]interface{} 
 		nil,
 	)
 	img := slack.NewImageBlock(
-		"http://placekitten.com/500/500", // TODO 写真をnotionの画像に差し替える
+		"https://user-images.githubusercontent.com/39262724/121457167-32fa7a00-c9e2-11eb-9d1e-08be648e0cf1.jpg",
 		"image",
 		"image",
 		nil,
