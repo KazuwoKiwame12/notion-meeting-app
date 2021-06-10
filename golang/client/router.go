@@ -1,6 +1,7 @@
 package client
 
 import (
+	"app/client/custommiddleware"
 	"app/client/handler"
 	"app/config"
 	"app/usecase"
@@ -11,6 +12,7 @@ import (
 
 func NewServer(commandUC *usecase.CommandUsecase, authorizationUC *usecase.AuthorizationUsecase, slackUC *usecase.SlackUsecase) *echo.Echo {
 	e := echo.New()
+	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{config.CORSAllowOrigin()},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
@@ -19,11 +21,15 @@ func NewServer(commandUC *usecase.CommandUsecase, authorizationUC *usecase.Autho
 	commandH := handler.NewCommandHandler(commandUC)
 	modalH := handler.NewModalHandler(slackUC)
 
-	e.POST("/start", commandH.StartScheduler)
-	e.POST("/stop", commandH.StopScheduler)
-	e.POST("/modal/operation", modalH.CallModalOperation)
-	e.POST("/explain", commandH.ExplainHowToUse)
-	e.POST("/all", commandH.CheckAllProcess)
-	e.POST("/all/stop", commandH.StopAllProcess)
+	userRoute := e.Group("/user", custommiddleware.AuthUserMiddleware(authorizationUC))
+	userRoute.POST("/start", commandH.StartScheduler)
+	userRoute.POST("/start", commandH.StartScheduler)
+	userRoute.POST("/stop", commandH.StopScheduler)
+	userRoute.POST("/modal/operation", modalH.CallModalOperation)
+	userRoute.POST("/explain", commandH.ExplainHowToUse)
+
+	adminRoute := e.Group("/admin", custommiddleware.AuthAdminMiddleware(authorizationUC))
+	adminRoute.POST("/all", commandH.CheckAllProcess)
+	adminRoute.POST("/all/stop", commandH.StopAllProcess)
 	return e
 }
