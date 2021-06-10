@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/slack-go/slack"
 )
 
 func init() {
@@ -73,6 +74,11 @@ func main() {
 	}
 	go o.KeepSatate()
 
+	// アプリ開始のメッセージ
+	if err := slack.PostWebhook(config.WEBHOOK_URL(), createResponseMessage("メンテナンスが終了し、アプリを開始しました。")); err != nil {
+		log.Printf("Failed to call incominng web hook: %+v\n", err)
+	}
+
 	// 終了処理
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
@@ -82,4 +88,26 @@ func main() {
 	if err := s.Shutdown(ctx); err != nil {
 		s.Logger.Fatal(err)
 	}
+	// slackへの通知
+	if err := slack.PostWebhook(config.WEBHOOK_URL(), createResponseMessage("メンテナンスのためにアプリを終了しました。アプリが開始した際には再度通知いたします。")); err != nil {
+		log.Printf("Failed to call incominng web hook: %+v\n", err)
+	}
+}
+
+func createResponseMessage(text string) *slack.WebhookMessage {
+	responseMsg := &slack.WebhookMessage{
+		Blocks: &slack.Blocks{
+			BlockSet: []slack.Block{
+				slack.NewSectionBlock(
+					&slack.TextBlockObject{
+						Type: slack.MarkdownType,
+						Text: "@channel\n" + text,
+					},
+					nil,
+					nil,
+				),
+			},
+		},
+	}
+	return responseMsg
 }
