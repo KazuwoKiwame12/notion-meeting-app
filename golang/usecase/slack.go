@@ -48,11 +48,8 @@ func (su *SlackUsecase) RegisterNotionInfo(workspaceID, slackUserID string, noti
 		return fmt.Errorf("get user error: %+v", err)
 	}
 	notion.UserID = user.ID
-	if err := notion.SetEncryptInfo(); err != nil {
-		return err
-	}
 
-	if err := su.DBOperator.RegisterNotionInfo(&notion); err != nil {
+	if err := su.DBOperator.RegisterNotionInfo(notion); err != nil {
 		return fmt.Errorf("register notion error: %+v, notion info: %+v", err, notion)
 	}
 	return nil
