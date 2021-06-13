@@ -31,7 +31,7 @@ func (su *SlackUsecase) GetModalView(userID int, triggerID string) error {
 		if err != nil {
 			return fmt.Errorf("get decrypt token and databaseID error: %+v", err)
 		}
-		su.embedInCurrentNotionInfos(&viewObj, plainToken, plainDatabaseID, notion.NotionPageContent, notion.Date)
+		embedInCurrentNotionInfos(&viewObj, plainToken, plainDatabaseID, notion.NotionPageContent, notion.Date)
 	}
 
 	slackClient := slack.New(config.SLACK_TOKEN())
@@ -55,7 +55,10 @@ func (su *SlackUsecase) RegisterNotionInfo(workspaceID, slackUserID string, noti
 	return nil
 }
 
-func (su *SlackUsecase) embedInCurrentNotionInfos(viewObj *slack.ModalViewRequest, token, databaseID, pageContent string, date int) {
+func embedInCurrentNotionInfos(viewObj *slack.ModalViewRequest, token, databaseID, pageContent string, date int) {
+	if date < 0 || date >= 7 {
+		date = 0
+	}
 	dateStringList := []string{"月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"}
 	embeddedData := []string{token, databaseID, pageContent, dateStringList[date]}
 	var index int = 3
