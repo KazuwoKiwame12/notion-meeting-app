@@ -12,9 +12,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var w *model.Workspace = &model.Workspace{ID: "W100", Name: "test1"}
-var u *model.User = &model.User{SlackUserID: "U100", WorkspaceID: w.ID, IsAdministrator: true, Name: "sample100"}
-var n *model.Notion = &model.Notion{UserID: u.ID, Date: 2, NotionToken: []byte("tokenNo1"), NotionDatabaseID: []byte("DatabaseIDNo1"), NotionPageContent: "sample"}
+var w = &model.Workspace{ID: "W100", Name: "test1"}
+var u = &model.User{SlackUserID: "U100", WorkspaceID: w.ID, IsAdministrator: true, Name: "sample100"}
+var n = &model.Notion{UserID: u.ID, Date: 2, NotionToken: []byte("Token1Token1Token1Token1"), NotionDatabaseID: []byte("DatabaseID1DatabaseID1"), NotionPageContent: "sample"}
 
 /*
 *test用の関数
@@ -29,7 +29,13 @@ func createData(sh *infrastructure.SqlHandler) {
 	if _, err := sh.Execute(queryForUser, u.ID, u.SlackUserID, u.WorkspaceID, u.IsAdministrator, u.Name); err != nil {
 		fmt.Printf("insert user query err: %+v\n", err)
 	}
-	if _, err := sh.Execute(queryForNotion, n.UserID, n.Date, n.NotionToken, n.NotionDatabaseID, n.NotionPageContent); err != nil {
+
+	nCopy := make([]model.Notion, 1)
+	copy(nCopy, []model.Notion{*n})
+	if err := nCopy[0].SetEncryptInfo(); err != nil {
+		fmt.Printf("set encrypted data err: %+v\n", err)
+	}
+	if _, err := sh.Execute(queryForNotion, nCopy[0].UserID, nCopy[0].Date, nCopy[0].NotionToken, nCopy[0].NotionDatabaseID, nCopy[0].NotionPageContent); err != nil {
 		fmt.Printf("insert notion query err: %+v\n", err)
 	}
 }
@@ -57,7 +63,7 @@ func getDbOperatorInstance() *function.DatabaseOperater {
 	return dbOp
 }
 
-func hasSameUserRecord(result *model.User, want *model.User) bool {
+func hasSameRecordOfUser(result *model.User, want *model.User) bool {
 	isSameID := result.ID == want.ID
 	isSameName := result.Name == want.Name
 	isSameSlackUser := result.SlackUserID == want.SlackUserID
@@ -66,7 +72,7 @@ func hasSameUserRecord(result *model.User, want *model.User) bool {
 	return isSameID && isSameName && isSameSlackUser && isSameWorkspace && isSameAd
 }
 
-func hasSameNotionRecord(result *model.Notion, want *model.Notion) bool {
+func hasSameRecordOfNotion(result *model.Notion, want *model.Notion) bool {
 	isSameUser := result.UserID == want.UserID
 	isSameDate := result.Date == want.Date
 	isSameToken := reflect.DeepEqual(result.NotionToken, want.NotionToken)
@@ -76,9 +82,10 @@ func hasSameNotionRecord(result *model.Notion, want *model.Notion) bool {
 }
 
 /*
-*全てのテストを実行する
+* 全てのtestを実行する
  */
 func TestMain(m *testing.M) {
+	// 前処理
 	fmt.Println("before all...")
 	envfilePath := fmt.Sprintf("%s/src/app/.env", os.Getenv("GOPATH"))
 	if err := godotenv.Load(envfilePath); err != nil {
@@ -95,16 +102,20 @@ func TestMain(m *testing.M) {
 		fmt.Printf("newSqlHandler err: %+v", err)
 	}
 
+	deleteAllData(sh)
+
+	// 全てのtestを実行する
 	fmt.Println("test start")
 	code := m.Run()
 
+	// 後処理
 	fmt.Println("after all...")
 	deleteAllData(sh)
 	os.Exit(code)
 }
 
 /*
-*t_workspaceテーブルに対する操作のテスト
+* t_workspaceに対する操作のtest
  */
 func TestRegisterWorkspace(t *testing.T) {
 	dbOp := getDbOperatorInstance()
@@ -117,7 +128,7 @@ func TestRegisterWorkspace(t *testing.T) {
 	}{
 		{
 			name:       "workspace tableにデータを登録する",
-			insertData: w,
+			insertData: &model.Workspace{ID: "W101", Name: "test2"},
 		},
 	}
 
@@ -131,9 +142,8 @@ func TestRegisterWorkspace(t *testing.T) {
 }
 
 /*
-*t_userテーブルに対する操作のテスト
+* t_userに対する操作のtest
  */
-
 func TestGetUser(t *testing.T) {
 	dbOp := getDbOperatorInstance()
 	deleteAllData(dbOp.SqlHandler.(*infrastructure.SqlHandler))
@@ -156,14 +166,14 @@ func TestGetUser(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			result, err := dbOp.GetUser(test.workspaceID, test.slackUserID)
-			if err != nil || !hasSameUserRecord(result, test.want) {
+			if err != nil || !hasSameRecordOfUser(result, test.want) {
 				t.Errorf("get user error ocurred: %+v\nresult is %+v\nwant is %+v\n", err, result, test.want)
 			}
 		})
 	}
 }
 
-func TestGetAdminUser(t *testing.T) {
+func TestAdmin(t *testing.T) {
 	dbOp := getDbOperatorInstance()
 	deleteAllData(dbOp.SqlHandler.(*infrastructure.SqlHandler))
 	createData(dbOp.SqlHandler.(*infrastructure.SqlHandler))
@@ -175,7 +185,7 @@ func TestGetAdminUser(t *testing.T) {
 		want        *model.User
 	}{
 		{
-			name:        "admin_userのデータを取得する",
+			name:        "adminのデータを取得する",
 			workspaceID: w.ID,
 			slackUserID: u.SlackUserID,
 			want:        u,
@@ -183,9 +193,9 @@ func TestGetAdminUser(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name+"administoratorバージョン", func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			result, err := dbOp.GetAdministrator()
-			if err != nil || !hasSameUserRecord(result, test.want) {
+			if err != nil || !hasSameRecordOfUser(result, test.want) {
 				t.Errorf("get user error ocurred: %+v\nresult is %+v\nwant is %+v\n", err, result, test.want)
 			}
 		})
@@ -277,7 +287,7 @@ func TestRegisterUser(t *testing.T) {
 }
 
 /*
-*t_notionテーブルに対する操作のテスト
+* t_notionに対する操作のtest
  */
 func TestGetNotionInfo(t *testing.T) {
 	dbOp := getDbOperatorInstance()
@@ -299,8 +309,18 @@ func TestGetNotionInfo(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			result, err := dbOp.GetNotionInfo(test.userID)
-			if err != nil || !hasSameNotionRecord(result, test.want) {
+			if err != nil {
 				t.Errorf("get notion error ocurred: %+v\nresult is %+v\nwant is %+v\n", err, result, test.want)
+			}
+
+			token, databaseID, err := result.GetDecyptInfo()
+			if err != nil {
+				t.Errorf("failed to decrypting: %+v\n", err)
+			}
+
+			result.NotionToken, result.NotionDatabaseID = []byte(token), []byte(databaseID)
+			if !hasSameRecordOfNotion(result, test.want) {
+				t.Errorf("failed to get correct notion: result is %+v\nwant is %+v\n", result, test.want)
 			}
 		})
 	}
@@ -313,11 +333,11 @@ func TestRegisterNotion(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		insertData *model.Notion
+		insertData model.Notion
 	}{
 		{
 			name:       "notion tableにデータを登録する",
-			insertData: n,
+			insertData: model.Notion{UserID: u.ID, Date: 3, NotionToken: []byte("token2token2token2token2"), NotionDatabaseID: []byte("DatabaseID2DatabaseID2"), NotionPageContent: "sample"},
 		},
 	}
 
@@ -327,7 +347,12 @@ func TestRegisterNotion(t *testing.T) {
 				t.Errorf("insert error ocurred: %+v", err)
 			}
 			result, _ := dbOp.GetNotionInfo(test.insertData.UserID)
-			if !hasSameNotionRecord(result, test.insertData) {
+			token, databaseID, err := result.GetDecyptInfo()
+			if err != nil {
+				t.Errorf("failed to decrypting: %+v\n", err)
+			}
+			result.NotionToken, result.NotionDatabaseID = []byte(token), []byte(databaseID)
+			if !hasSameRecordOfNotion(result, &test.insertData) {
 				t.Errorf("insert wrong notion's properties...result is %+v\nwant is %+v\n", result, test.insertData)
 			}
 		})

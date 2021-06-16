@@ -25,11 +25,11 @@ func NewTemplateUsecase(dbOperator *function.DatabaseOperater) *TemplateUsecase 
 }
 
 func (t *TemplateUsecase) CreateForMeeting(databaseID, token, pageContent string) error {
-	params := t.createTemplateFormat(databaseID, pageContent)
+	params := createTemplateFormat(databaseID, pageContent)
 	return t.client.CreatePage(token, *params)
 }
 
-func (t *TemplateUsecase) createTemplateFormat(databaseID, pageContent string) *model.Template {
+func createTemplateFormat(databaseID, pageContent string) *model.Template {
 	params := &model.Template{}
 	// database idの指定
 	params.Parent.DatabaseID = databaseID
@@ -84,18 +84,20 @@ func (t *TemplateUsecase) createTemplateFormat(databaseID, pageContent string) *
 		},
 	})
 
-	params.Children = make([]model.Block, 0, len(blocksByString[1:]))
-	for _, blockByString := range blocksByString[1:] {
-		contents := strings.Split(blockByString, " ")
-		text := createTextFromContents(contents)
-		block := t.createBlock(text, model.BlockType(contents[blockTypeIndex]))
-		params.Children = append(params.Children, *block)
+	if len(blocksByString) > 1 {
+		params.Children = make([]model.Block, 0, len(blocksByString[1:]))
+		for _, blockByString := range blocksByString[1:] {
+			contents := strings.Split(blockByString, " ")
+			text := createTextFromContents(contents)
+			block := createBlock(text, model.BlockType(contents[blockTypeIndex]))
+			params.Children = append(params.Children, *block)
+		}
 	}
 
 	return params
 }
 
-func (t *TemplateUsecase) createBlock(text string, blocktype model.BlockType) *model.Block {
+func createBlock(text string, blocktype model.BlockType) *model.Block {
 	var block *model.Block
 	switch blocktype {
 	case model.BlockTypeParagraph:
