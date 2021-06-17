@@ -18,6 +18,10 @@ func SLACK_TOKEN() string {
 	return getterEnvInfo("SLACK_TOKEN")
 }
 
+func SLACK_SECRET() string {
+	return getterEnvInfo("SLACK_SECRET")
+}
+
 func WEBHOOK_URL() string {
 	return getterEnvInfo("WEBHOOK_URL")
 }
