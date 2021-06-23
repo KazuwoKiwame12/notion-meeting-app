@@ -4,9 +4,9 @@ WORKDIR /go/src/app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN GOCS=linux GOACH=amd64 go build server.go
+RUN GOCS=linux GOACH=amd64 go build main.go
 
 FROM golang:alpine as PROD
 WORKDIR /root/
-COPY --from=DEV /go/src/app/server .
-CMD ["./server"]
+COPY --from=DEV /go/src/app/main .
+CMD ["./main"]
