@@ -1,0 +1,40 @@
+name: CI/CD setting
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+        - name: check out
+          uses: actions/checkout@v2
+        - name: build test
+          run: cd golang && go build ./...
+        - name: config function test
+          run: cd golang/config && go test ./... -v
+        - name: usecase function test
+          run: cd golang/usecase && go test ./... -v
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v2
+        - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
+          with:
+            heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+            heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
+            heroku_email: ${{secrets.HEROKU_EMAIL}}
