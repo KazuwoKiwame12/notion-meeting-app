@@ -10,12 +10,16 @@ func Port() string {
 	return getterEnvInfo("PORT")
 }
 
-func DSN() string {
-	return getterEnvInfo("DSN")
+func DATABASE_URL() string {
+	return getterEnvInfo("DATABASE_URL")
 }
 
 func SLACK_TOKEN() string {
 	return getterEnvInfo("SLACK_TOKEN")
+}
+
+func SLACK_SECRET() string {
+	return getterEnvInfo("SLACK_SECRET")
 }
 
 func WEBHOOK_URL() string {
