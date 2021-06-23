@@ -17,11 +17,12 @@ jobs:
         - name: check out
           uses: actions/checkout@v2
         - name: download
-          run: cd golang && go mod download  
+          run: cd golang && go mod download
         - name: build test
           run: cd golang && go build ./...
         - name: config function test
           run: cd golang/config && go test ./... -v
+        - run: go env
         - name: usecase function test
           run: cd golang/usecase && GOPATH=/go go test ./... -v
 
