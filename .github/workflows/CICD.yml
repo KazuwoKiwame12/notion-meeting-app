@@ -25,10 +25,10 @@ jobs:
           run: cd golang && go mod download  
         # - name: build test
         #   run: cd golang && go build ./...
-        - name: config function test
-          run: cd golang/config && go test ./... -v
-        - name: usecase function test
-          run: cd golang/usecase && go test ./... -v
+        # - name: config function test
+        #   run: cd golang/config && go test ./... -v
+        # - name: usecase function test
+        #   run: cd golang/usecase && go test ./... -v
 
   deploy:
     needs: test
