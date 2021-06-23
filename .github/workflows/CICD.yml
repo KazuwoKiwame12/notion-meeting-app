@@ -23,8 +23,8 @@ jobs:
           uses: actions/checkout@v2
         - name: download
           run: cd golang && go mod download  
-        - name: build test
-          run: cd golang && go build ./...
+        # - name: build test
+        #   run: cd golang && go build ./...
         - name: config function test
           run: cd golang/config && go test ./... -v
         - name: usecase function test
