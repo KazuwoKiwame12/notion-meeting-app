@@ -23,7 +23,7 @@ jobs:
         - name: config function test
           run: cd golang/config && go test ./... -v
         - name: usecase function test
-          run: cd golang/usecase && go test ./... -v
+          run: cd golang/usecase && GOPATH=/go go test ./... -v
 
   deploy:
     needs: test
