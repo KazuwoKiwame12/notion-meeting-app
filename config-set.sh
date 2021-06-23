@@ -1,13 +1,13 @@
 #!/bin/bash
-heroku_app_name=""
-cat ./golang/.env.heroku | while read line; do
-    if test "`echo ${line} | cut -c 1`" = "HEROKU_APP_NAME";then
-        heroku_app_name=`echo ${line} | cut -d '=' -f 2`
+getHerokuAppName() {
+    cat ./golang/.env.heroku | while read line || [ -n "${line}" ]; do
+    if test "`echo ${line} | cut -d '=' -f 1`" = "HEROKU_APP_NAME";then
+        echo "`echo ${line} | cut -d '=' -f 2`"
         break
     fi
 done
-
-echo ${heroku_app_name}
+}
+heroku_app_name=`getHerokuAppName`
 
 cat ./golang/.env | while read line; do
     if test "`echo ${line} | cut -c 1`" != "#";then
