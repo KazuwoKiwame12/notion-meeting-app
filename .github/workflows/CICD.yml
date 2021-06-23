@@ -22,6 +22,7 @@ jobs:
           run: cd golang && go build ./...
         - name: config function test
           run: cd golang/config && go test ./... -v
+        - run: find `pwd` -name *.json
         - name: usecase function test
           run: cd golang/usecase && GOPATH=/home/runner/go go test ./... -v
 
