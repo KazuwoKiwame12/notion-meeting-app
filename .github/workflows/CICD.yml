@@ -22,9 +22,8 @@ jobs:
           run: cd golang && go build ./...
         - name: config function test
           run: cd golang/config && go test ./... -v
-        - run: find `pwd` -name *.json
-        - name: usecase function test
-          run: cd golang/usecase && GOPATH=/home/runner/go go test ./... -v
+        - name: usecase function test #github actionsの環境と開発環境はdockerの有無のせいでパスが異なる
+          run: export GITHUB_ACTIONS_ENV_SWITCH=true && cd golang/usecase && go test ./... -v
 
   deploy:
     needs: test

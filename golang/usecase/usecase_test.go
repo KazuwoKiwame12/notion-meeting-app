@@ -239,10 +239,19 @@ func TestEmbedInCurrentNotionInfos(t *testing.T) {
 
 func getModalFormat(requireWantData bool) (*slack.ModalViewRequest, error) {
 	var jsonfilePath string
+	isGithubActionsEnv := os.Getenv("GITHUB_ACTIONS_ENV_SWITCH")
 	if requireWantData {
-		jsonfilePath = fmt.Sprintf("%s/src/app/asset/testdata/modalview_monday.json", os.Getenv("GOPATH"))
+		if len(isGithubActionsEnv) > 0 {
+			jsonfilePath = "/home/runner/work/notion-meeting-app/notion-meeting-app/golang/asset/testdata/modalview_monday.json"
+		} else {
+			jsonfilePath = fmt.Sprintf("%s/src/app/asset/testdata/modalview_monday.json", os.Getenv("GOPATH"))
+		}
 	} else {
-		jsonfilePath = fmt.Sprintf("%s/src/app/asset/slack/modalview.json", os.Getenv("GOPATH"))
+		if len(isGithubActionsEnv) > 0 {
+			jsonfilePath = "/home/runner/work/notion-meeting-app/notion-meeting-app/golang/asset/slack/modalview.json"
+		} else {
+			jsonfilePath = fmt.Sprintf("%s/src/app/asset/slack/modalview.json", os.Getenv("GOPATH"))
+		}
 	}
 
 	viewBytes, err := os.ReadFile(jsonfilePath)
