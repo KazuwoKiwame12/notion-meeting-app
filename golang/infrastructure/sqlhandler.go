@@ -15,7 +15,7 @@ type SqlHandler struct {
 }
 
 func NewSqlHandler() (*SqlHandler, error) {
-	db, err := sql.Open("postgres", config.DSN())
+	db, err := sql.Open("postgres", config.DATABASE_URL())
 	if err != nil {
 		return nil, fmt.Errorf("failed to open PostgreSQL: %w", err)
 	}

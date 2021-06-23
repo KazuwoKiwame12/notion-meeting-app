@@ -10,8 +10,8 @@ func Port() string {
 	return getterEnvInfo("PORT")
 }
 
-func DSN() string {
-	return getterEnvInfo("DSN")
+func DATABASE_URL() string {
+	return getterEnvInfo("DATABASE_URL")
 }
 
 func SLACK_TOKEN() string {
