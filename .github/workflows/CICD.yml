@@ -22,9 +22,8 @@ jobs:
           run: cd golang && go build ./...
         - name: config function test
           run: cd golang/config && go test ./... -v
-        - run: cd golang/asset/testdata && ls
         - name: usecase function test
-          run: cd golang/usecase && go test ./... -v
+          run: cd golang/usecase && GOPATH=/home/runner/go go test ./... -v
 
   deploy:
     needs: test
