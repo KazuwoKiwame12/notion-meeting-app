@@ -21,6 +21,8 @@ jobs:
     steps:
         - name: check out
           uses: actions/checkout@v2
+        - nam: download
+          run: cd golang && go mod download  
         - name: build test
           run: cd golang && go build ./...
         - name: config function test
