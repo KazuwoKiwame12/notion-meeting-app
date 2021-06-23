@@ -1,0 +1,4 @@
+development:
+    dialect: postgres
+    datasource: ${DATABASE_URL} #環境変数に設定する
+    dir: infrastructure/migrate
