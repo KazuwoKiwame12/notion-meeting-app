@@ -68,7 +68,7 @@ func verifySignature(header http.Header, payload string, secret string) error {
 	if err != nil {
 		return err
 	}
-	io.WriteString(&sv, payload)        // 生成するsignatureのベースとなる値に、payloadを付け加えている
+	sv.Write(payload)        // 生成するsignatureのベースとなる値に、payloadを付け加えている
 	if err := sv.Ensure(); err != nil { // Ensureにて，slackのsignareと生成したsignatureの比較
 		return err
 	}
