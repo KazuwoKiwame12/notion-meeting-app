@@ -5,7 +5,6 @@ import (
 	"app/usecase"
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -68,7 +67,7 @@ func verifySignature(header http.Header, payload string, secret string) error {
 	if err != nil {
 		return err
 	}
-	sv.Write(payload)        // 生成するsignatureのベースとなる値に、payloadを付け加えている
+	sv.Write([]byte(payload))        // 生成するsignatureのベースとなる値に、payloadを付け加えている
 	if err := sv.Ensure(); err != nil { // Ensureにて，slackのsignareと生成したsignatureの比較
 		return err
 	}
