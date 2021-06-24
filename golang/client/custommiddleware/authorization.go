@@ -21,19 +21,23 @@ func AuthUserMiddleware(auc *usecase.AuthorizationUsecase) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if err := verifySignature(c.Request().Header, c.FormValue("payload"), config.SLACK_SECRET()); err != nil {
+				log.Printf("error occured! in verify signature:\n\t %+v, %+v, %+v\n", c.Request().Header, c.FormValue("payload"), err)
 				return c.JSON(http.StatusBadRequest, err)
 			}
 
 			workspaceID, slackUserID, err := getWorkspaceIDAndSlackUserID(c.FormValue("type"), c.FormValue("payload"))
 			if err != nil {
+				log.Printf("error occured! in getWorkspaceIDAndSlackUserID:\n\t %+v, %+v, %+v\n", workspaceID, slackUserID, err)
 				return c.JSON(http.StatusBadRequest, err)
 			}
 			userID, userName, err := auc.IsUser(workspaceID, slackUserID)
 			if err != nil {
+				log.Printf("error occured! in auc.IsUser:\n\t %+v, %+v, %+v\n", userID, userName, err)
 				return c.JSON(http.StatusBadRequest, err)
 			}
 			c.Request().Form.Set("user_id", strconv.Itoa(userID))
 			c.Request().Form.Set("user_name", userName)
+			log.Printf("form_values: %+v\n", c.Request().Form)
 			return next(c)
 		}
 	}
@@ -67,7 +71,7 @@ func verifySignature(header http.Header, payload string, secret string) error {
 	if err != nil {
 		return err
 	}
-	sv.Write([]byte(payload))        // 生成するsignatureのベースとなる値に、payloadを付け加えている
+	sv.Write([]byte(payload))           // 生成するsignatureのベースとなる値に、payloadを付け加えている
 	if err := sv.Ensure(); err != nil { // Ensureにて，slackのsignareと生成したsignatureの比較
 		return err
 	}
