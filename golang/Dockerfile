@@ -12,6 +12,6 @@ COPY . .
 RUN go build server.go
 
 
-FROM golang:alpine:3.14 as PROD
+FROM alpine:3.14 as PROD
 COPY --from=DEV /go/src/app/server .
 ENTRYPOINT ["./server"]
