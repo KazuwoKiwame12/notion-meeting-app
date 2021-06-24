@@ -239,7 +239,7 @@ func TestEmbedInCurrentNotionInfos(t *testing.T) {
 
 func getModalFormat(requireWantData bool) (*slack.ModalViewRequest, error) {
 	var jsonfilePath string
-	isGithubActionsEnv := os.Getenv("GITHUB_ACTIONS_ENV_SWITCH")
+	isGithubActionsEnv := os.Getenv("GH_ACTIONS_ENV_SWITCH")
 	if requireWantData {
 		if len(isGithubActionsEnv) > 0 {
 			jsonfilePath = "/home/runner/work/notion-meeting-app/notion-meeting-app/golang/asset/testdata/modalview_monday.json"

@@ -9,6 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+        run:
+          shell: bash
+          working-directory: golang
     steps:
         - name: setup golang
           uses: actions/setup-go@v2
@@ -17,13 +21,13 @@ jobs:
         - name: check out
           uses: actions/checkout@v2
         - name: download
-          run: cd golang && go mod download
+          run: go mod download
         - name: build test
-          run: cd golang && go build ./...
+          run: go build ./...
         - name: config function test
-          run: cd golang/config && go test ./... -v
+          run: cd config && go test ./... -v
         - name: usecase function test #github actionsの環境と開発環境はdockerの有無のせいでパスが異なる
-          run: export GITHUB_ACTIONS_ENV_SWITCH=true && cd golang/usecase && go test ./... -v
+          run: export GH_ACTIONS_ENV_SWITCH=true && cd usecase && go test ./... -v
 
   deploy:
     needs: test
