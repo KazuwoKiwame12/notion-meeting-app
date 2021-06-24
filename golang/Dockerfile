@@ -1,16 +1,17 @@
-FROM golang:latest as DEV
-RUN mkdir /go/src/app
+FROM golang:1.16 as DEV
+
+ENV GOCS=linux
+ENV GOACH=amd64
+ENV CGO_ENABLED=0
+ENV GO111MODULE=on
+
 WORKDIR /go/src/app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN GOCS=linux GOACH=amd64 go build server.go
+RUN go build server.go
 
-FROM golang:alpine as PROD
-WORKDIR /root/
+
+FROM golang:alpine:3.14 as PROD
 COPY --from=DEV /go/src/app/server .
 ENTRYPOINT ["./server"]
-# WORKDIR /go/src/app
-# COPY --from=DEV /go/src/app .
-# ENTRYPOINT ["go", "run", "server.go"]
-#
