@@ -25,6 +25,7 @@ func AuthUserMiddleware(auc *usecase.AuthorizationUsecase) echo.MiddlewareFunc {
 			if c.Request().Body != nil { // Read
 				reqBody, _ = ioutil.ReadAll(c.Request().Body)
 			}
+			log.Printf("reqBody:\n\t %+v\n", reqBody)
 			if err := verifySignature(c.Request().Header, reqBody, config.SLACK_SECRET()); err != nil {
 				log.Printf("error occured! in verify signature:\n\t %+v, %+v, %+v\n", c.Request().Header, reqBody, err)
 				return c.JSON(http.StatusBadRequest, err)
