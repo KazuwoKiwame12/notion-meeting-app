@@ -13,3 +13,4 @@ ENTRYPOINT ["./server"]
 # WORKDIR /go/src/app
 # COPY --from=DEV /go/src/app .
 # ENTRYPOINT ["go", "run", "server.go"]
+#
