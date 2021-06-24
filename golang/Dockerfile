@@ -7,6 +7,9 @@ COPY . .
 RUN GOCS=linux GOACH=amd64 go build server.go
 
 FROM golang:alpine as PROD
-WORKDIR /root/
-COPY --from=DEV /go/src/app/server .
-CMD ["./server"]
+# WORKDIR /root/
+# COPY --from=DEV /go/src/app/server .
+# CMD ["./server"]
+WORKDIR /go/src/app
+COPY --from=DEV /go/src/app .
+CMD ["go run server.go"]
