@@ -5,6 +5,7 @@ import (
 	"app/usecase"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -20,8 +21,12 @@ const (
 func AuthUserMiddleware(auc *usecase.AuthorizationUsecase) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if err := verifySignature(c.Request().Header, c.FormValue("payload"), config.SLACK_SECRET()); err != nil {
-				log.Printf("error occured! in verify signature:\n\t %+v, %+v, %+v\n", c.Request().Header, c.FormValue("payload"), err)
+			reqBody := []byte{}
+			if c.Request().Body != nil { // Read
+				reqBody, _ = ioutil.ReadAll(c.Request().Body)
+			}
+			if err := verifySignature(c.Request().Header, reqBody, config.SLACK_SECRET()); err != nil {
+				log.Printf("error occured! in verify signature:\n\t %+v, %+v, %+v\n", c.Request().Header, reqBody, err)
 				return c.JSON(http.StatusBadRequest, err)
 			}
 
@@ -46,7 +51,7 @@ func AuthUserMiddleware(auc *usecase.AuthorizationUsecase) echo.MiddlewareFunc {
 func AuthAdminMiddleware(auc *usecase.AuthorizationUsecase) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if err := verifySignature(c.Request().Header, c.FormValue("payload"), config.SLACK_SECRET()); err != nil {
+			if err := verifySignature(c.Request().Header, []byte(c.FormValue("payload")), config.SLACK_SECRET()); err != nil {
 				return c.JSON(http.StatusBadRequest, err)
 			}
 
@@ -66,12 +71,12 @@ func AuthAdminMiddleware(auc *usecase.AuthorizationUsecase) echo.MiddlewareFunc 
 }
 
 /*リクエストがslackから送られてきたものであることの保証する関数*/
-func verifySignature(header http.Header, payload string, secret string) error {
+func verifySignature(header http.Header, body []byte, secret string) error {
 	sv, err := slack.NewSecretsVerifier(header, secret)
 	if err != nil {
 		return err
 	}
-	sv.Write([]byte(payload))           // 生成するsignatureのベースとなる値に、payloadを付け加えている
+	sv.Write(body)                      // 生成するsignatureのベースとなる値に、payloadを付け加えている
 	if err := sv.Ensure(); err != nil { // Ensureにて，slackのsignareと生成したsignatureの比較
 		return err
 	}
