@@ -246,6 +246,9 @@ func (cu *CommandUsecase) All() (string, error) {
 	}
 
 	nameList, err := cu.DBOperator.GetUserNameList(userIDs)
+	if len(nameList) == 0 {
+		return "誰もスケジューラを起動していません。", nil
+	}
 	if err != nil {
 		return "", fmt.Errorf("get user name list error: %+v", err)
 	}
