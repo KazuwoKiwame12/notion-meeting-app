@@ -33,13 +33,14 @@ func (mh *ModalHandler) CallModalOperation(c echo.Context) error {
 	}
 
 	var callbackID string = ""
-	switch interactionObj.TriggerID {
-	case string(slack.InteractionTypeShortcut):
+	switch interactionObj.Type {
+	case slack.InteractionTypeShortcut:
 		callbackID = interactionObj.CallbackID
-	case string(slack.InteractionTypeViewSubmission):
+	case slack.InteractionTypeViewSubmission:
 		callbackID = interactionObj.View.CallbackID
 	}
 
+	userName := c.FormValue("user_name")
 	switch callbackID {
 	case "notion-info__form":
 		userID, _ := strconv.Atoi(c.FormValue("user_id"))
@@ -54,17 +55,17 @@ func (mh *ModalHandler) CallModalOperation(c echo.Context) error {
 			NotionDatabaseID:  []byte(interactionObj.View.State.Values["notion-database_id"]["plain_text_input-action"].Value),
 			NotionPageContent: interactionObj.View.State.Values["notion-page_content"]["plain_text_input-action"].Value,
 		}
-		text := fmt.Sprintf("@%s\nnotionの情報を登録しました。", interactionObj.User.Name)
+		text := fmt.Sprintf("@%s\nnotionの情報を登録しました。", userName)
 		if err := mh.slackUC.RegisterNotionInfo(interactionObj.Team.ID, interactionObj.User.ID, notion); err != nil {
 			log.Printf("Failed to store notion info: %+v\n", err)
-			text = fmt.Sprintf("@%s\nnotionの情報の登録に失敗しました。", interactionObj.User.Name)
+			text = fmt.Sprintf("@%s\nnotionの情報の登録に失敗しました。", userName)
 		}
 		if err := slack.PostWebhook(config.WEBHOOK_URL(), mh.createResponseMessage(text)); err != nil {
 			log.Printf("Failed to call incominng web hook: %+v\n", err)
 		}
 	default:
 		log.Println("error occurred for an unexpected request.")
-		text := fmt.Sprintf("@%s\n想定外のリクエストのためエラー。", interactionObj.User.Name)
+		text := fmt.Sprintf("@%s\n想定外のリクエストのためエラー。", userName)
 		if err := slack.PostWebhook(config.WEBHOOK_URL(), mh.createResponseMessage(text)); err != nil {
 			log.Printf("Failed to call incominng web hook: %+v\n", err)
 		}
