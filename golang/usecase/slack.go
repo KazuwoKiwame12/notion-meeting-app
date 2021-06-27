@@ -16,7 +16,12 @@ type SlackUsecase struct {
 }
 
 func (su *SlackUsecase) GetModalView(userID int, triggerID string) error {
-	jsonfilePath := fmt.Sprintf("%s/src/app/asset/slack/modalview.json", os.Getenv("GOPATH")) // 絶対パスで参照(相対パスの場合、当然だが実行ファイルからの相対パスとして認識される)
+	var jsonfilePath string
+	if len(os.Getenv("IS_PRODUCT")) > 0 {
+		jsonfilePath = "modalview.json"
+	} else {
+		jsonfilePath = fmt.Sprintf("%s/src/app/asset/slack/modalview.json", os.Getenv("GOPATH")) // 絶対パスで参照(相対パスの場合、当然だが実行ファイルからの相対パスとして認識される)
+	}
 	viewBytes, err := os.ReadFile(jsonfilePath)
 	if err != nil {
 		return fmt.Errorf("os.ReadFile error: %+v", err)

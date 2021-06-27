@@ -11,7 +11,6 @@ RUN go mod download
 COPY . .
 RUN go build server.go
 
-
 FROM alpine:3.14 as PROD
-COPY --from=DEV /go/src/app/server .
+COPY --from=DEV /go/src/app/server /go/src/app/asset/slack/modalview.json .
 ENTRYPOINT ["./server"]
