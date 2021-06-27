@@ -26,6 +26,9 @@ func (ch *CommandHandler) StartScheduler(c echo.Context) error {
 	if _, alreadyExsit := ch.commandUC.ProcessManager[userID]; alreadyExsit {
 		return c.JSON(http.StatusOK, map[string]interface{}{"blocks": ch.createResponseBlocks("your scheduler is already runned")})
 	}
+	if _, err := ch.commandUC.DBOperator.GetNotionInfo(userID); err != nil {
+		return c.JSON(http.StatusOK, map[string]interface{}{"blocks": ch.createResponseBlocks("you have to set notio info!!")})
+	}
 	go ch.commandUC.Start(userID)
 	return c.JSON(http.StatusOK, map[string]interface{}{"blocks": ch.createResponseBlocks("your request successed!! scheduler is runnning ...")})
 }
